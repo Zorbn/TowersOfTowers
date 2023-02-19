@@ -122,9 +122,21 @@ class Tab<T extends Item> {
 
 class Inventory {
     public readonly tab: Tab<InventoryItem>;
+    private footer: Container;
+    private labelText: BitmapText;
 
-    constructor(width: number, height: number) {
+    constructor(width: number, height: number, tileSize: number, container: Container) {
         this.tab = new Tab(width, height, new InventoryItem(Tower.empty, 0, 0));
+        this.footer = new Container();
+        this.footer.y = tileSize * height;
+        container.addChild(this.footer);
+
+        this.labelText = new BitmapText('', { fontName: 'DefaultFont' });
+        this.labelText.x = tileSize * 0.25;
+        this.labelText.y = tileSize * 0.3;
+        this.labelText.scale.x = 0.2;
+        this.labelText.scale.y = 0.2;
+        this.footer.addChild(this.labelText);
     }
 
     addTower = (tower: Tower, quantity: number) => {
@@ -168,12 +180,31 @@ class Inventory {
             item.used = 0;
         }
     }
+
+    draw = (selectedTab: TabType) => {
+        this.footer.visible = false;
+
+        if (selectedTab != TabType.INVENTORY) {
+            return;
+        }
+
+        const selectedItem = this.tab.getSelectedItem();
+
+        if (selectedItem.tower.empty) {
+            return;
+        }
+
+        this.footer.visible = true;
+        const remainingTowers = selectedItem.owned - selectedItem.used;
+        this.labelText.text = `The ${selectedItem.tower.name} ${remainingTowers}/${selectedItem.owned}`;
+    }
 }
 
 class Shop {
     public readonly tab: Tab<ShopItem>;
     private footer: Container;
     private buyButton: Sprite;
+    private labelText: BitmapText;
 
     constructor(width: number, height: number, tileSize: number, container: Container, textures: UiTextures) {
         this.tab = new Tab(width, height, new ShopItem(Tower.empty, 0));
@@ -186,23 +217,32 @@ class Shop {
 
         this.buyButton = new Sprite(textures.buyButton);
         this.buyButton.y = tileSize * 0.25;
+        this.buyButton.x = tileSize * 0.25;
         this.footer.addChild(this.buyButton);
 
-        const labelText = new BitmapText('The towerinator $5', { fontName: 'DefaultFont' });
-        labelText.x = tileSize * 1.25;
-        labelText.y = tileSize * 0.3;
-        labelText.scale.x = 0.2;
-        labelText.scale.y = 0.2;
-        this.footer.addChild(labelText);
+        this.labelText = new BitmapText('', { fontName: 'DefaultFont' });
+        this.labelText.x = tileSize * 1.5;
+        this.labelText.y = tileSize * 0.3;
+        this.labelText.scale.x = 0.2;
+        this.labelText.scale.y = 0.2;
+        this.footer.addChild(this.labelText);
     }
 
     draw = (selectedTab: TabType) => {
+        this.footer.visible = false;
+
         if (selectedTab != TabType.SHOP) {
-            this.footer.visible = false;
+            return;
+        }
+
+        const selectedItem = this.tab.getSelectedItem();
+
+        if (selectedItem.tower.empty) {
             return;
         }
 
         this.footer.visible = true;
+        this.labelText.text = `The ${selectedItem.tower.name} $${selectedItem.cost}`;
     }
 
     isBuyButtonHovered = (mouseX: number, mouseY: number) => {
@@ -230,9 +270,6 @@ export class Ui {
     private selectedTab: TabType;
     private readonly tabsWidth: number;
     private readonly tabsHeight: number;
-
-    // TODO: Darken inventory sprites that have 0 quantity, and shop
-    // sprites that cost more than the player can afford.
 
     constructor(tileSize: number, width: number, height: number, textures: UiTextures, container: Container) {
         const slotCount = width * height;
@@ -292,7 +329,7 @@ export class Ui {
         this.moneyText.scale.y = 0.2;
         container.addChild(this.moneyText);
 
-        this.inventory = new Inventory(width, height);
+        this.inventory = new Inventory(width, height, tileSize, container);
         this.shop = new Shop(width, height, tileSize, container, textures);
     }
 
@@ -331,6 +368,7 @@ export class Ui {
         tab.draw(towerTextures, this.slotItemSprites, this.money);
 
         this.shop.draw(this.selectedTab);
+        this.inventory.draw(this.selectedTab);
     }
 
     addMoney = (amount: number) => {
