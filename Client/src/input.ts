@@ -38,12 +38,20 @@ export class Input {
         return this.pressedMouseButtons.has(button);
     }
 
-    getMouseX = (state: State) => {
+    getMouseWorldX = (state: State) => {
         return (this.mouseX - state.view.x) / state.scaledView.scale.x;
     }
 
-    getMouseY = (state: State) => {
+    getMouseWorldY = (state: State) => {
         return (this.mouseY - state.view.y) / state.scaledView.scale.y;
+    }
+
+    getMouseX = () => {
+        return this.mouseX;
+    }
+
+    getMouseY = () => {
+        return this.mouseY;
     }
 
     update = () => {

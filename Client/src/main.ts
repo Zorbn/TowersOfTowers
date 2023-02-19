@@ -27,11 +27,18 @@ const onResize = (view: Container, scaledView: Container) => {
 
 // TODO: Don't create/delete new sprites, create sprites on init then
 // change their textures like the UI does.
+const isInMap = (x: number, y: number): boolean => {
+    x = Math.floor(x);
+    y = Math.floor(y);
+
+    return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT
+}
+
 const setTower = (state: State, x: number, y: number, tower: Tower) => {
     x = Math.floor(x);
     y = Math.floor(y);
 
-    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+    if (!isInMap(x, y)) {
         return;
     }
 
@@ -54,7 +61,7 @@ const getTower = (state: State, x: number, y: number): Tower => {
     x = Math.floor(x);
     y = Math.floor(y);
 
-    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+    if (!isInMap(x, y)) {
         return Tower.empty;
     }
 
@@ -72,36 +79,43 @@ const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Te
     return textures;
 }
 
-const update = async (state: State, deltaTime: number) => {
-    state.ui.draw(state.towerTextures);
+const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => {
+    const oldTower = getTower(state, mouseTileX, mouseTileY);
 
-    if (state.input.wasKeyPressed('KeyQ')) {
-        state.ui.addItem(Tower.doubleShot, 2);
+    if (!oldTower.empty) {
+        state.ui.inventory.stopUsingTower(oldTower, 1);
+        setTower(state, mouseTileX, mouseTileY, Tower.empty);
+        return;
     }
 
-    if (state.input.wasKeyPressed('KeyE')) {
-        state.ui.addItem(Tower.singleShot, 2);
+    const selectedSlot = state.ui.getSelectedItem();
+
+    if (selectedSlot.tower.empty || !isInMap(mouseTileX, mouseTileY) ||
+        !state.ui.inventory.startUsingTower(selectedSlot.tower, 1)) {
+        return;
+    }
+
+    setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
+}
+
+const update = async (state: State, deltaTime: number) => {
+    state.ui.draw(state.towerTextures, TILE_SIZE);
+
+    if (state.input.wasKeyPressed('KeyM')) {
+        state.ui.addMoney(25);
     }
 
     if (state.input.wasMouseButtonPressed(0)) {
-        const mouseTileX = (state.input.getMouseX(state) - state.towerSpriteContainer.x) / TILE_SIZE;
-        const mouseTileY = (state.input.getMouseY(state) - state.towerSpriteContainer.y) / TILE_SIZE;
-        const mouseUiTileX = state.input.getMouseX(state) / TILE_SIZE;
-        const mouseUiTileY = state.input.getMouseY(state) / TILE_SIZE;
+        const mouseX = state.input.getMouseX();
+        const mouseY = state.input.getMouseY();
+        const mouseWorldX = state.input.getMouseWorldX(state);
+        const mouseWorldY = state.input.getMouseWorldY(state);
+        const mouseTileX = (mouseWorldX - state.towerSpriteContainer.x) / TILE_SIZE;
+        const mouseTileY = (mouseWorldY - state.towerSpriteContainer.y) / TILE_SIZE;
 
-        state.ui.selectSlot(mouseUiTileX, mouseUiTileY, TILE_SIZE);
-        state.ui.selectTab(mouseUiTileX, mouseUiTileY, TILE_SIZE);
+        state.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, TILE_SIZE);
 
-        const oldTower = getTower(state, mouseTileX, mouseTileY);
-        if (!oldTower.empty) {
-            state.ui.addItem(oldTower, 1);
-            setTower(state, mouseTileX, mouseTileY, Tower.empty);
-        } else {
-            const selectedSlot = state.ui.getSelectedItem();
-            if (!selectedSlot.tower.empty && selectedSlot.quantity > 0) {
-                setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
-            }
-        }
+        tryPlaceTower(state, mouseTileX, mouseTileY);
     }
 
     state.input.update();
@@ -122,7 +136,7 @@ const main = async () => {
 
     const tileTextures = loadTextureSheet('tileSheet.png', TILE_SIZE, 2);
     const towerTextures = loadTextureSheet('towerSheet.png', TILE_SIZE, 2);
-    const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 4);
+    const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 5);
 
     const playerTexture = Texture.from('1BitEngineer.png');
     const playerSprite = new Sprite(playerTexture);
@@ -180,15 +194,6 @@ const main = async () => {
         chars: BitmapFont.ASCII,
     });
 
-    const testText = new BitmapText('The towerinator $5', { fontName: 'DefaultFont' });
-    testText.x = TILE_SIZE * 0.125;
-    testText.y = TILE_SIZE * 3.125;
-    testText.scale.x = 0.2;
-    testText.scale.y = 0.2;
-    testText.zIndex = 100;
-    testText.updateText();
-    scaledView.addChild(testText);
-
     let state: State = {
         view,
         scaledView,
@@ -199,6 +204,7 @@ const main = async () => {
             tabInventory: uiTextures[2],
             tabShop: uiTextures[3],
             tabSelected: uiTextures[1],
+            buyButton: uiTextures[4],
         }, scaledView),
         towers: new Array(MAP_WIDTH * MAP_HEIGHT),
         towerTextures,
