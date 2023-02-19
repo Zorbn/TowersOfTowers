@@ -17,24 +17,47 @@ enum TabType {
 
 interface Item {
     tower: Tower;
+    isActive(money: number): boolean;
 }
 
-export interface InventoryItem extends Item {
-    tower: Tower,
-    owned: number,
-    used: number,
+class InventoryItem implements Item {
+    public tower: Tower;
+    public owned: number;
+    public used: number;
+
+    constructor(tower: Tower, owned: number, used: number) {
+        this.tower = tower;
+        this.owned = owned;
+        this.used = used;
+    }
+
+    isActive(_money: number): boolean {
+        return this.used < this.owned;
+    }
 }
 
-export interface ShopItem extends Item {
-    tower: Tower,
-    cost: number,
+class ShopItem implements Item {
+    public tower: Tower;
+    public cost: number;
+
+    constructor(tower: Tower, cost: number) {
+        this.tower = tower;
+        this.cost = cost;
+    }
+
+    isActive(money: number): boolean {
+        return money >= this.cost;
+    }
 }
 
 interface ITab {
-    draw(towerTextures: Texture[], slotItemSprites: Sprite[]): void;
+    draw(towerTextures: Texture[], slotItemSprites: Sprite[], money: number): void;
     selectSlot(i: number): void;
     getSelectedSlot(): number;
 }
+
+const ITEM_ACTIVE_COLOR = 0xffffff;
+const ITEM_INACTIVE_COLOR = 0xaaaaaa;
 
 class Tab<T extends Item> {
     private slots: T[];
@@ -50,11 +73,12 @@ class Tab<T extends Item> {
         this.selectedSlot = 0;
     }
 
-    draw = (towerTextures: Texture[], slotItemSprites: Sprite[]): void => {
+    draw = (towerTextures: Texture[], slotItemSprites: Sprite[], money: number): void => {
         for (let i = 0; i < this.slots.length; i++) {
             let slotItem = this.slots[i];
 
             slotItemSprites[i].texture = towerTextures[slotItem.tower.textureIndex];
+            slotItemSprites[i].tint = slotItem.isActive(money) ? ITEM_ACTIVE_COLOR : ITEM_INACTIVE_COLOR;
         }
     }
 
@@ -100,18 +124,14 @@ class Inventory {
     public readonly tab: Tab<InventoryItem>;
 
     constructor(width: number, height: number) {
-        this.tab = new Tab(width, height, { tower: Tower.empty, owned: 0, used: 0 });
+        this.tab = new Tab(width, height, new InventoryItem(Tower.empty, 0, 0));
     }
 
     addTower = (tower: Tower, quantity: number) => {
         let item = this.tab.getItem(tower);
 
         if (item == null) {
-            this.tab.addItem({
-                tower,
-                owned: quantity,
-                used: 0,
-            });
+            this.tab.addItem(new InventoryItem(tower, quantity, 0));
             return;
         }
 
@@ -156,15 +176,9 @@ class Shop {
     private buyButton: Sprite;
 
     constructor(width: number, height: number, tileSize: number, container: Container, textures: UiTextures) {
-        this.tab = new Tab(width, height, { tower: Tower.empty, cost: 0 });
-        this.tab.addItem({
-            tower: Tower.singleShot,
-            cost: 50,
-        });
-        this.tab.addItem({
-            tower: Tower.doubleShot,
-            cost: 100,
-        });
+        this.tab = new Tab(width, height, new ShopItem(Tower.empty, 0));
+        this.tab.addItem(new ShopItem(Tower.singleShot, 50));
+        this.tab.addItem(new ShopItem(Tower.doubleShot, 100));
 
         this.footer = new Container();
         this.footer.y = tileSize * height;
@@ -174,12 +188,12 @@ class Shop {
         this.buyButton.y = tileSize * 0.25;
         this.footer.addChild(this.buyButton);
 
-        const testText = new BitmapText('The towerinator $5', { fontName: 'DefaultFont' });
-        testText.x = tileSize * 1.25;
-        testText.y = tileSize * 0.3;
-        testText.scale.x = 0.2;
-        testText.scale.y = 0.2;
-        this.footer.addChild(testText);
+        const labelText = new BitmapText('The towerinator $5', { fontName: 'DefaultFont' });
+        labelText.x = tileSize * 1.25;
+        labelText.y = tileSize * 0.3;
+        labelText.scale.x = 0.2;
+        labelText.scale.y = 0.2;
+        this.footer.addChild(labelText);
     }
 
     draw = (selectedTab: TabType) => {
@@ -203,6 +217,7 @@ export class Ui {
     public shop: Shop;
 
     private money: number;
+    private moneyText: BitmapText;
 
     private slotBackgroundSprites: Sprite[];
     private slotItemSprites: Sprite[];
@@ -269,9 +284,16 @@ export class Ui {
         this.selectedTabSprite.x = tabStartX;
         container.addChild(this.selectedTabSprite);
 
+        this.money = 0;
+        this.moneyText = new BitmapText("", { fontName: 'DefaultFont' });
+        this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
+        this.moneyText.y = tileSize * 0.1;
+        this.moneyText.scale.x = 0.2;
+        this.moneyText.scale.y = 0.2;
+        container.addChild(this.moneyText);
+
         this.inventory = new Inventory(width, height);
         this.shop = new Shop(width, height, tileSize, container, textures);
-        this.money = 0;
     }
 
     private getSelectedTab = (): ITab => {
@@ -290,6 +312,8 @@ export class Ui {
     }
 
     draw = (towerTextures: Texture[], tileSize: number) => {
+        this.moneyText.text = `$${this.money}`;
+
         let tab = this.getSelectedTab();
 
         const selectedSlot = tab.getSelectedSlot();
@@ -304,7 +328,7 @@ export class Ui {
         this.selectedTabSprite.x = (this.slotsWidth + selectedTabX) * tileSize;
         this.selectedTabSprite.y = selectedTabY * tileSize;
 
-        tab.draw(towerTextures, this.slotItemSprites);
+        tab.draw(towerTextures, this.slotItemSprites, this.money);
 
         this.shop.draw(this.selectedTab);
     }

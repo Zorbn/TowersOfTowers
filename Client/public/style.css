@@ -1,0 +1,32 @@
+@font-face {
+    font-family: Oswald;
+    src: url("Oswald-Regular.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background-color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+}
+
+h1 {
+    font-family: Oswald;
+    color: white;
+    z-index: -1;
+}
+
+canvas {
+    position: absolute;
+}

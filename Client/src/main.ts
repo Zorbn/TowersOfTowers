@@ -1,5 +1,4 @@
-import './style.css';
-import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont, BitmapText } from 'pixi.js';
+import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont } from 'pixi.js';
 import { Tower } from './tower';
 import { Input } from './input';
 import { State } from './state';
@@ -11,9 +10,6 @@ const VIRTUAL_HEIGHT = 240;
 const MAP_WIDTH = 15;
 const MAP_HEIGHT = 4;
 const TILE_SIZE = 16;
-
-// TODO: Change the inventory to keep track of total & in-use rather than
-// just quantity.
 
 const onResize = (view: Container, scaledView: Container) => {
     let scale = Math.min(window.innerWidth / VIRTUAL_WIDTH, window.innerHeight / VIRTUAL_HEIGHT);
@@ -98,7 +94,7 @@ const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => 
     setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
 }
 
-const update = async (state: State, deltaTime: number) => {
+const update = async (state: State, _deltaTime: number) => {
     state.ui.draw(state.towerTextures, TILE_SIZE);
 
     if (state.input.wasKeyPressed('KeyM')) {
@@ -126,6 +122,15 @@ const main = async () => {
         resizeTo: window,
         autoDensity: true,
     });
+
+    BitmapFont.from('DefaultFont', {
+        fontFamily: 'Oswald',
+        fontSize: 64,
+        fill: 'white',
+    }, {
+        chars: BitmapFont.ASCII,
+    });
+
     document.body.appendChild(app.view as HTMLCanvasElement);
 
     const view = new Container();
@@ -184,14 +189,6 @@ const main = async () => {
         if (e.key == 'a') {
             playerSprite.x -= 1;
         }
-    });
-
-    BitmapFont.from('DefaultFont', {
-        fontFamily: 'Oswald',
-        fontSize: 64,
-        fill: 'white',
-    }, {
-        chars: BitmapFont.ASCII,
     });
 
     let state: State = {
