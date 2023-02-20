@@ -1,4 +1,5 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
+import { State } from "./state";
 import { Tower, TowerStats } from "./tower";
 
 const STARTING_MONEY = 100;
@@ -10,6 +11,8 @@ export type UiTextures = {
     tabShop: Texture,
     tabSelected: Texture,
     buyButton: Texture,
+    startButton: Texture,
+    buttonSelected: Texture,
 }
 
 enum TabType {
@@ -272,6 +275,9 @@ export class Ui {
     private readonly tabsWidth: number;
     private readonly tabsHeight: number;
 
+    private startButtonSprite: Sprite;
+    private selectedStartButtonSprite: Sprite;
+
     constructor(tileSize: number, width: number, height: number, textures: UiTextures, container: Container) {
         const slotCount = width * height;
         this.slotBackgroundSprites = new Array(slotCount);
@@ -322,6 +328,17 @@ export class Ui {
         this.selectedTabSprite.x = tabStartX;
         container.addChild(this.selectedTabSprite);
 
+        this.startButtonSprite = new Sprite(textures.startButton);
+        this.startButtonSprite.x = tabStartX;
+        this.startButtonSprite.y = tileSize * 2;
+        container.addChild(this.startButtonSprite);
+
+        this.selectedStartButtonSprite = new Sprite(textures.buttonSelected);
+        this.selectedStartButtonSprite.x = this.startButtonSprite.x;
+        this.selectedStartButtonSprite.y = this.startButtonSprite.y;
+        this.selectedStartButtonSprite.zIndex = 1;
+        container.addChild(this.selectedStartButtonSprite);
+
         this.money = STARTING_MONEY;
         this.moneyText = new BitmapText("", { fontName: 'DefaultFont' });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
@@ -349,8 +366,10 @@ export class Ui {
         return tab;
     }
 
-    draw = (towerTextures: Texture[], tileSize: number) => {
+    draw = (state: State, tileSize: number) => {
         this.moneyText.text = `$${this.money}`;
+
+        this.selectedStartButtonSprite.visible = !state.enemySpawner.isActive();
 
         let tab = this.getSelectedTab();
 
@@ -366,7 +385,7 @@ export class Ui {
         this.selectedTabSprite.x = (this.slotsWidth + selectedTabX) * tileSize;
         this.selectedTabSprite.y = selectedTabY * tileSize;
 
-        tab.draw(towerTextures, this.slotItemSprites, this.money);
+        tab.draw(state.towerTextures, this.slotItemSprites, this.money);
 
         this.shop.draw(this.selectedTab);
         this.inventory.draw(this.selectedTab);
@@ -376,13 +395,7 @@ export class Ui {
         this.money += amount;
     }
 
-    interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, tileSize: number) => {
-        const mouseTileX = mouseWorldX / tileSize;
-        const mouseTileY = mouseWorldY / tileSize;
-
-        this.selectSlot(mouseTileX, mouseTileY);
-        this.selectTab(mouseTileX, mouseTileY);
-
+    interactWithBuyButton = (mouseX: number, mouseY: number) => {
         if (this.selectedTab != TabType.SHOP) {
             return;
         }
@@ -400,6 +413,30 @@ export class Ui {
 
         this.money -= selectedItem.cost;
         this.inventory.addTower(selectedItem.towerStats, 1);
+    }
+
+    interactWithStartButton = (mouseX: number, mouseY: number, state: State) => {
+        if (state.enemySpawner.isActive()) {
+            return;
+        }
+
+        const startButtonBounds = this.startButtonSprite.getBounds();
+        if (!startButtonBounds.contains(mouseX, mouseY)) {
+            return;
+        }
+
+        state.enemySpawner.start();
+    }
+
+    interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, state: State) => {
+        const mouseTileX = mouseWorldX / state.map.tileSize;
+        const mouseTileY = mouseWorldY / state.map.tileSize;
+
+        this.selectSlot(mouseTileX, mouseTileY);
+        this.selectTab(mouseTileX, mouseTileY);
+
+        this.interactWithBuyButton(mouseX, mouseY);
+        this.interactWithStartButton(mouseX, mouseY, state);
     }
 
     selectSlot = (tileX: number, tileY: number) => {

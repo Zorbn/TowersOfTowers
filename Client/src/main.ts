@@ -17,6 +17,9 @@ const TILE_SIZE = 16;
 // Scene support
 // Particles, could be used for damage, spawning, destroying
 // Animated enemies?
+// Loading towers/enemies/projecties from json files?
+// Saving?
+// Networking?
 
 const onResize = (view: Container, scaledView: Container) => {
     let scale = Math.min(window.innerWidth / VIRTUAL_WIDTH, window.innerHeight / VIRTUAL_HEIGHT);
@@ -58,8 +61,34 @@ const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => 
     state.map.setTower(state, mouseTileX, mouseTileY, new Tower(selectedSlot.towerStats));
 }
 
+const updateEnemies = (state: State, deltaTime: number) => {
+    state.enemySpawner.update(state.enemies, deltaTime, MAP_WIDTH, MAP_HEIGHT,
+        TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
+
+    let enemyInPlayerBase = false;
+
+    for (let enemy of state.enemies) {
+        enemy.update(deltaTime, state);
+
+        // Check if the enemy has reached the player's base.
+        if (enemy.getX() < -TILE_SIZE) {
+            enemyInPlayerBase = true;
+            break;
+        }
+    }
+
+    if (enemyInPlayerBase) {
+        for (let enemy of state.enemies) {
+            enemy.destroy();
+        }
+
+        state.enemies.splice(0, state.enemies.length);
+        state.enemySpawner.reset();
+    }
+}
+
 const update = async (state: State, deltaTime: number) => {
-    state.ui.draw(state.towerTextures, TILE_SIZE);
+    state.ui.draw(state, TILE_SIZE);
 
     if (state.input.wasKeyPressed('KeyM')) {
         state.ui.addMoney(25);
@@ -73,17 +102,12 @@ const update = async (state: State, deltaTime: number) => {
         const mouseTileX = (mouseWorldX - state.entitySpriteContainer.x) / TILE_SIZE;
         const mouseTileY = (mouseWorldY - state.entitySpriteContainer.y) / TILE_SIZE;
 
-        state.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, TILE_SIZE);
+        state.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, state);
 
         tryPlaceTower(state, mouseTileX, mouseTileY);
     }
 
-    state.enemySpawner.update(state.enemies, deltaTime, MAP_WIDTH, MAP_HEIGHT,
-        TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
-
-    for (let enemy of state.enemies) {
-        enemy.update(deltaTime, state);
-    }
+    updateEnemies(state, deltaTime);
 
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
@@ -124,7 +148,7 @@ const main = async () => {
 
     const tileTextures = loadTextureSheet('tileSheet.png', TILE_SIZE, 2);
     const towerTextures = loadTextureSheet('towerSheet.png', TILE_SIZE, 2);
-    const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 5);
+    const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 6);
     const enemyTextures = loadTextureSheet('enemySheet.png', TILE_SIZE, 2);
     const projectileTextures = loadTextureSheet('projectileSheet.png', TILE_SIZE, 3);
 
@@ -173,6 +197,8 @@ const main = async () => {
             tabShop: uiTextures[3],
             tabSelected: uiTextures[1],
             buyButton: uiTextures[4],
+            startButton: uiTextures[5],
+            buttonSelected: uiTextures[1],
         }, scaledView),
         projectileTextures,
         towerTextures,
@@ -180,7 +206,7 @@ const main = async () => {
         entitySpriteContainer: new Container(),
         enemyTextures,
         enemies: [],
-        enemySpawner: new EnemySpawner(1),
+        enemySpawner: new EnemySpawner(),
         map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE),
         projectiles: [],
     };
