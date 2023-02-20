@@ -9,18 +9,20 @@ export class EnemyStats {
     public readonly attackTime: number;
     public readonly speed: number;
     public readonly health: number;
+    public readonly value: number;
 
-    constructor(name: string, textureIndex: number, damage: number, attackTime: number, speed: number, health: number) {
+    constructor(name: string, textureIndex: number, damage: number, attackTime: number, speed: number, health: number, value: number) {
         this.name = name;
         this.textureIndex = textureIndex;
         this.damage = damage;
         this.attackTime = attackTime;
         this.speed = speed;
         this.health = health;
+        this.value = value;
     }
 
-    public static readonly zombie = new EnemyStats("Zombie", 0, 10, 0.5, 5, 20);
-    public static readonly speedyZombie = new EnemyStats("Speedy Zombie", 1, 10, 0.5, 10, 10);
+    public static readonly zombie = new EnemyStats("Zombie", 0, 10, 0.5, 5, 20, 2);
+    public static readonly speedyZombie = new EnemyStats("Speedy Zombie", 1, 10, 0.5, 10, 10, 1);
 }
 
 export class Enemy {

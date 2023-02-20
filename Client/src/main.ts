@@ -13,6 +13,11 @@ const MAP_WIDTH = 15;
 const MAP_HEIGHT = 4;
 const TILE_SIZE = 16;
 
+// TODO:
+// Scene support
+// Particles, could be used for damage, spawning, destroying
+// Animated enemies?
+
 const onResize = (view: Container, scaledView: Container) => {
     let scale = Math.min(window.innerWidth / VIRTUAL_WIDTH, window.innerHeight / VIRTUAL_HEIGHT);
 
@@ -84,7 +89,7 @@ const update = async (state: State, deltaTime: number) => {
         const projectile = state.projectiles[i];
 
         // Remove the projectile if it had a collision.
-        if (projectile.update(TILE_SIZE, state.enemies, deltaTime)) {
+        if (projectile.update(TILE_SIZE, state, deltaTime)) {
             projectile.destroy();
             state.projectiles.splice(i, 1);
         }
