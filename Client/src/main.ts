@@ -1,10 +1,10 @@
-import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont } from 'pixi.js';
-import { Tower } from './tower';
-import { Input } from './input';
-import { State } from './state';
-import { Ui } from './ui';
-import { EnemySpawner } from './enemySpawner';
-import { TowerMap } from './towerMap';
+import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont } from "pixi.js";
+import { Tower } from "./tower";
+import { Input } from "./input";
+import { State } from "./state";
+import { Ui } from "./ui";
+import { EnemySpawner } from "./enemySpawner";
+import { TowerMap } from "./towerMap";
 
 const VIRTUAL_WIDTH = 320;
 const VIRTUAL_HEIGHT = 240;
@@ -14,7 +14,6 @@ const MAP_HEIGHT = 4;
 const TILE_SIZE = 16;
 
 // TODO:
-// Scene support
 // Particles, could be used for damage, spawning, destroying
 // Animated enemies?
 // Loading towers/enemies/projecties from json files?
@@ -62,8 +61,7 @@ const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => 
 }
 
 const updateEnemies = (state: State, deltaTime: number) => {
-    state.enemySpawner.update(state.enemies, deltaTime, MAP_WIDTH, MAP_HEIGHT,
-        TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
+    state.enemySpawner.update(state, deltaTime);
 
     let enemyInPlayerBase = false;
 
@@ -90,7 +88,7 @@ const updateEnemies = (state: State, deltaTime: number) => {
 const update = async (state: State, deltaTime: number) => {
     state.ui.draw(state, TILE_SIZE);
 
-    if (state.input.wasKeyPressed('KeyM')) {
+    if (state.input.wasKeyPressed("KeyM")) {
         state.ui.addMoney(25);
     }
 
@@ -130,10 +128,10 @@ const main = async () => {
         autoDensity: true,
     });
 
-    BitmapFont.from('DefaultFont', {
-        fontFamily: 'Oswald',
+    BitmapFont.from("DefaultFont", {
+        fontFamily: "Oswald",
         fontSize: 64,
-        fill: 'white',
+        fill: "white",
     }, {
         chars: BitmapFont.ASCII,
     });
@@ -146,25 +144,25 @@ const main = async () => {
     scaledView.sortableChildren = true;
     app.stage.addChild(view);
 
-    const tileTextures = loadTextureSheet('tileSheet.png', TILE_SIZE, 2);
-    const towerTextures = loadTextureSheet('towerSheet.png', TILE_SIZE, 2);
-    const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 6);
-    const enemyTextures = loadTextureSheet('enemySheet.png', TILE_SIZE, 2);
-    const projectileTextures = loadTextureSheet('projectileSheet.png', TILE_SIZE, 3);
+    const tileTextures = loadTextureSheet("tileSheet.png", TILE_SIZE, 2);
+    const towerTextures = loadTextureSheet("towerSheet.png", TILE_SIZE, 3);
+    const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 6);
+    const enemyTextures = loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
+    const projectileTextures = loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
 
     const background = new Container();
     background.zIndex = -1;
     background.x = VIRTUAL_WIDTH * 0.5 - MAP_WIDTH * TILE_SIZE * 0.5;
     background.y = VIRTUAL_HEIGHT * 0.5 - MAP_HEIGHT * TILE_SIZE * 0.5 + TILE_SIZE * 4;
 
-    const playerBaseTexture = Texture.from('playerBase.png');
+    const playerBaseTexture = Texture.from("playerBase.png");
     const playerBaseSprite = new Sprite(playerBaseTexture);
     playerBaseSprite.anchor.x = 1.0;
     playerBaseSprite.anchor.y = 1.0;
     playerBaseSprite.y = MAP_HEIGHT * TILE_SIZE;
     background.addChild(playerBaseSprite);
 
-    const enemyBaseTexture = Texture.from('enemyBase.png');
+    const enemyBaseTexture = Texture.from("enemyBase.png");
     const enemyBaseSprite = new Sprite(enemyBaseTexture);
     enemyBaseSprite.anchor.y = 1.0;
     enemyBaseSprite.x = MAP_WIDTH * TILE_SIZE;
@@ -184,7 +182,7 @@ const main = async () => {
 
     onResize(view, scaledView);
 
-    window.addEventListener('resize', () => onResize(view, scaledView));
+    window.addEventListener("resize", () => onResize(view, scaledView));
 
     let state: State = {
         view,

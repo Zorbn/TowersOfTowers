@@ -1,5 +1,6 @@
 import { Projectile, ProjectileStats } from "./projectile";
 import { State } from "./state";
+import towerStatsData from "../public/towers.json";
 
 export class TowerStats {
     public readonly name: string;
@@ -18,9 +19,28 @@ export class TowerStats {
         this.empty = empty;
     }
 
-    public static readonly empty = new TowerStats('Empty', -1, null, 0, 0, true);
-    public static readonly singleShot = new TowerStats('Single Shot', 0, new ProjectileStats(0, 5, 50), 1, 100);
-    public static readonly doubleShot = new TowerStats('Double Shot', 1, new ProjectileStats(1, 10, 50), 1, 200);
+    private static loadTowerStats = (): TowerStats[] => {
+        let towerStats = [];
+
+        for (let data of towerStatsData) {
+            towerStats.push(new TowerStats(
+                data.name,
+                data.textureIndex,
+                new ProjectileStats(
+                    data.projectileStats.textureIndex,
+                    data.projectileStats.damage,
+                    data.projectileStats.speed,
+                ),
+                data.attackTime,
+                data.health,
+            ));
+        }
+
+        return towerStats;
+    }
+
+    public static readonly empty = new TowerStats("Empty", -1, null, 0, 0, true);
+    public static readonly loadedTowerStats = this.loadTowerStats();
 }
 
 export class Tower {

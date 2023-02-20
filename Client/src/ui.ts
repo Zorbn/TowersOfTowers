@@ -1,6 +1,7 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
 import { State } from "./state";
-import { Tower, TowerStats } from "./tower";
+import { TowerStats } from "./tower";
+import towerStatsData from "../public/towers.json";
 
 const STARTING_MONEY = 100;
 
@@ -136,7 +137,7 @@ class Inventory {
         this.footer.y = tileSize * height;
         container.addChild(this.footer);
 
-        this.labelText = new BitmapText('', { fontName: 'DefaultFont' });
+        this.labelText = new BitmapText("", { fontName: "DefaultFont" });
         this.labelText.x = tileSize * 0.25;
         this.labelText.y = tileSize * 0.3;
         this.labelText.scale.x = 0.2;
@@ -213,8 +214,13 @@ class Shop {
 
     constructor(width: number, height: number, tileSize: number, container: Container, textures: UiTextures) {
         this.tab = new Tab(width, height, new ShopItem(TowerStats.empty, 0));
-        this.tab.addItem(new ShopItem(TowerStats.singleShot, 50));
-        this.tab.addItem(new ShopItem(TowerStats.doubleShot, 100));
+
+        for (let i = 0; i < TowerStats.loadedTowerStats.length; i++) {
+            this.tab.addItem(new ShopItem(
+                TowerStats.loadedTowerStats[i],
+                towerStatsData[i].cost,
+            ));
+        }
 
         this.footer = new Container();
         this.footer.y = tileSize * height;
@@ -225,7 +231,7 @@ class Shop {
         this.buyButton.x = tileSize * 0.25;
         this.footer.addChild(this.buyButton);
 
-        this.labelText = new BitmapText('', { fontName: 'DefaultFont' });
+        this.labelText = new BitmapText("", { fontName: "DefaultFont" });
         this.labelText.x = tileSize * 1.5;
         this.labelText.y = tileSize * 0.3;
         this.labelText.scale.x = 0.2;
@@ -262,6 +268,8 @@ export class Ui {
 
     private money: number;
     private moneyText: BitmapText;
+
+    private waveText: BitmapText;
 
     private slotBackgroundSprites: Sprite[];
     private slotItemSprites: Sprite[];
@@ -340,12 +348,19 @@ export class Ui {
         container.addChild(this.selectedStartButtonSprite);
 
         this.money = STARTING_MONEY;
-        this.moneyText = new BitmapText("", { fontName: 'DefaultFont' });
+        this.moneyText = new BitmapText("", { fontName: "DefaultFont" });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
         this.moneyText.y = tileSize * 0.1;
         this.moneyText.scale.x = 0.2;
         this.moneyText.scale.y = 0.2;
         container.addChild(this.moneyText);
+
+        this.waveText = new BitmapText("", { fontName: "DefaultFont" });
+        this.waveText.x = this.moneyText.x;
+        this.waveText.y = this.moneyText.y + tileSize;
+        this.waveText.scale.x = this.moneyText.scale.x;
+        this.waveText.scale.y = this.moneyText.scale.y;
+        container.addChild(this.waveText);
 
         this.inventory = new Inventory(width, height, tileSize, container);
         this.shop = new Shop(width, height, tileSize, container, textures);
@@ -369,7 +384,13 @@ export class Ui {
     draw = (state: State, tileSize: number) => {
         this.moneyText.text = `$${this.money}`;
 
-        this.selectedStartButtonSprite.visible = !state.enemySpawner.isActive();
+        if (state.enemySpawner.isActive()) {
+            this.selectedStartButtonSprite.visible = false;
+            this.waveText.text = `Wave ${state.enemySpawner.getWave()}`;
+        } else {
+            this.selectedStartButtonSprite.visible = true;
+            this.waveText.text = "Get ready...";
+        }
 
         let tab = this.getSelectedTab();
 

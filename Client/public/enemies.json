@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Zombie",
+        "textureIndex": 0,
+        "damage": 10,
+        "attackTime": 0.5,
+        "speed": 5,
+        "health": 20,
+        "value": 2,
+        "tier": 1
+    },
+    {
+        "name": "Speedy Zombie",
+        "textureIndex": 1,
+        "damage": 10,
+        "attackTime": 0.5,
+        "speed": 10,
+        "health": 10,
+        "value": 3,
+        "tier": 2
+    }
+]

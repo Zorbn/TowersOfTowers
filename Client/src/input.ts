@@ -1,4 +1,4 @@
-import { State } from './state';
+import { State } from "./state";
 
 export class Input {
     private pressedKeys: Set<string>;
@@ -67,12 +67,12 @@ export class Input {
 
             this.pressedKeys.add(event.code);
         }
-        document.addEventListener('keydown', this.keyDownListener);
+        document.addEventListener("keydown", this.keyDownListener);
 
         this.keyUpListener = (event: KeyboardEvent) => {
             this.pressedKeys.delete(event.code);
         }
-        document.addEventListener('keyup', this.keyUpListener);
+        document.addEventListener("keyup", this.keyUpListener);
 
         this.mouseDownListener = (event: MouseEvent) => {
             if (!this.pressedMouseButtons.has(event.button)) {
@@ -81,24 +81,24 @@ export class Input {
 
             this.pressedMouseButtons.add(event.button);
         }
-        document.addEventListener('mousedown', this.mouseDownListener)
+        document.addEventListener("mousedown", this.mouseDownListener)
         this.mouseUpListener = (event) => {
             this.pressedMouseButtons.delete(event.button);
         };
-        document.addEventListener('mouseup', this.mouseUpListener);
+        document.addEventListener("mouseup", this.mouseUpListener);
 
         this.mouseMoveListener = (event: MouseEvent) => {
             this.mouseX = event.clientX;
             this.mouseY = event.clientY;
         }
-        document.addEventListener('mousemove', this.mouseMoveListener);
+        document.addEventListener("mousemove", this.mouseMoveListener);
     }
 
     removeListeners = () => {
-        document.removeEventListener('keydown', this.keyDownListener!);
-        document.removeEventListener('keyup', this.keyUpListener!);
-        document.removeEventListener('mousedown', this.mouseDownListener!)
-        document.removeEventListener('mouseup', this.mouseUpListener!);
+        document.removeEventListener("keydown", this.keyDownListener!);
+        document.removeEventListener("keyup", this.keyUpListener!);
+        document.removeEventListener("mousedown", this.mouseDownListener!)
+        document.removeEventListener("mouseup", this.mouseUpListener!);
 
         this.pressedKeys.clear();
         this.pressedMouseButtons.clear();

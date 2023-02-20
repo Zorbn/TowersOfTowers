@@ -1,6 +1,7 @@
 import { Container, Sprite, Texture } from "pixi.js";
 import { State } from "./state";
 import { Tower } from "./tower";
+import enemyStatsData from "../public/enemies.json";
 
 export class EnemyStats {
     public readonly name: string;
@@ -21,8 +22,25 @@ export class EnemyStats {
         this.value = value;
     }
 
-    public static readonly zombie = new EnemyStats("Zombie", 0, 10, 0.5, 5, 20, 2);
-    public static readonly speedyZombie = new EnemyStats("Speedy Zombie", 1, 10, 0.5, 10, 10, 1);
+    private static loadEnemyStats = (): EnemyStats[] => {
+        let enemyStats = [];
+
+        for (let data of enemyStatsData) {
+            enemyStats.push(new EnemyStats(
+                data.name,
+                data.textureIndex,
+                data.damage,
+                data.attackTime,
+                data.speed,
+                data.health,
+                data.value,
+            ));
+        }
+
+        return enemyStats;
+    }
+
+    public static readonly loadedEnemyStats = this.loadEnemyStats();
 }
 
 export class Enemy {
