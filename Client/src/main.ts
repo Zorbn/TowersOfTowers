@@ -77,14 +77,14 @@ const update = async (state: State, deltaTime: number) => {
         TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
 
     for (let enemy of state.enemies) {
-        enemy.update(deltaTime, state.map);
+        enemy.update(deltaTime, state);
     }
 
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
 
         // Remove the projectile if it had a collision.
-        if (projectile.update(TILE_SIZE, state.enemies, 0)) {
+        if (projectile.update(TILE_SIZE, state.enemies, deltaTime)) {
             projectile.destroy();
             state.projectiles.splice(i, 1);
         }
