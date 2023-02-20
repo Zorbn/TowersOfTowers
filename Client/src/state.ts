@@ -2,6 +2,7 @@ import { Container, Sprite, Texture } from "pixi.js";
 import { Enemy } from "./enemy";
 import { EnemySpawner } from "./enemySpawner";
 import { Input } from "./input";
+import { Projectile } from "./projectile";
 import { TowerMap } from "./towerMap";
 import { Ui } from "./ui";
 
@@ -17,4 +18,6 @@ export type State = {
     enemyTextures: Texture[],
     enemySpawner: EnemySpawner,
     map: TowerMap,
+    projectiles: Projectile[],
+    projectileTextures: Texture[],
 }

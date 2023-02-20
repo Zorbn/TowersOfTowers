@@ -1,5 +1,5 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
-import { Tower } from "./tower";
+import { Tower, TowerStats } from "./tower";
 
 const STARTING_MONEY = 100;
 
@@ -18,17 +18,17 @@ enum TabType {
 }
 
 interface Item {
-    tower: Tower;
+    towerStats: TowerStats;
     isActive(money: number): boolean;
 }
 
 class InventoryItem implements Item {
-    public tower: Tower;
+    public towerStats: TowerStats;
     public owned: number;
     public used: number;
 
-    constructor(tower: Tower, owned: number, used: number) {
-        this.tower = tower;
+    constructor(towerStats: TowerStats, owned: number, used: number) {
+        this.towerStats = towerStats;
         this.owned = owned;
         this.used = used;
     }
@@ -39,11 +39,11 @@ class InventoryItem implements Item {
 }
 
 class ShopItem implements Item {
-    public tower: Tower;
+    public towerStats: TowerStats;
     public cost: number;
 
-    constructor(tower: Tower, cost: number) {
-        this.tower = tower;
+    constructor(towerStats: TowerStats, cost: number) {
+        this.towerStats = towerStats;
         this.cost = cost;
     }
 
@@ -79,7 +79,7 @@ class Tab<T extends Item> {
         for (let i = 0; i < this.slots.length; i++) {
             let slotItem = this.slots[i];
 
-            slotItemSprites[i].texture = towerTextures[slotItem.tower.textureIndex];
+            slotItemSprites[i].texture = towerTextures[slotItem.towerStats.textureIndex];
             slotItemSprites[i].tint = slotItem.isActive(money) ? ITEM_ACTIVE_COLOR : ITEM_INACTIVE_COLOR;
         }
     }
@@ -102,7 +102,7 @@ class Tab<T extends Item> {
 
     addItem = (item: T) => {
         for (let i = 0; i < this.slots.length; i++) {
-            if (!this.slots[i].tower.empty) {
+            if (!this.slots[i].towerStats.empty) {
                 continue;
             }
 
@@ -111,9 +111,9 @@ class Tab<T extends Item> {
         }
     }
 
-    getItem = (tower: Tower): T | null => {
+    getItem = (towerStats: TowerStats): T | null => {
         for (let i = 0; i < this.slots.length; i++) {
-            if (this.slots[i].tower == tower) {
+            if (this.slots[i].towerStats == towerStats) {
                 return this.slots[i];
             }
         }
@@ -128,7 +128,7 @@ class Inventory {
     private labelText: BitmapText;
 
     constructor(width: number, height: number, tileSize: number, container: Container) {
-        this.tab = new Tab(width, height, new InventoryItem(Tower.empty, 0, 0));
+        this.tab = new Tab(width, height, new InventoryItem(TowerStats.empty, 0, 0));
         this.footer = new Container();
         this.footer.y = tileSize * height;
         container.addChild(this.footer);
@@ -141,19 +141,19 @@ class Inventory {
         this.footer.addChild(this.labelText);
     }
 
-    addTower = (tower: Tower, quantity: number) => {
-        let item = this.tab.getItem(tower);
+    addTower = (towerStats: TowerStats, quantity: number) => {
+        let item = this.tab.getItem(towerStats);
 
         if (item == null) {
-            this.tab.addItem(new InventoryItem(tower, quantity, 0));
+            this.tab.addItem(new InventoryItem(towerStats, quantity, 0));
             return;
         }
 
         item.owned += quantity;
     }
 
-    startUsingTower = (tower: Tower, quantity: number): boolean => {
-        let item = this.tab.getItem(tower);
+    startUsingTower = (towerStats: TowerStats, quantity: number): boolean => {
+        let item = this.tab.getItem(towerStats);
 
         if (item == null) {
             return false;
@@ -169,8 +169,8 @@ class Inventory {
         return true;
     }
 
-    stopUsingTower = (tower: Tower, quantity: number) => {
-        let item = this.tab.getItem(tower);
+    stopUsingTower = (towerStats: TowerStats, quantity: number) => {
+        let item = this.tab.getItem(towerStats);
 
         if (item == null) {
             return;
@@ -192,13 +192,13 @@ class Inventory {
 
         const selectedItem = this.tab.getSelectedItem();
 
-        if (selectedItem.tower.empty) {
+        if (selectedItem.towerStats.empty) {
             return;
         }
 
         this.footer.visible = true;
         const remainingTowers = selectedItem.owned - selectedItem.used;
-        this.labelText.text = `The ${selectedItem.tower.name} ${remainingTowers}/${selectedItem.owned}`;
+        this.labelText.text = `The ${selectedItem.towerStats.name} ${remainingTowers}/${selectedItem.owned}`;
     }
 }
 
@@ -209,9 +209,9 @@ class Shop {
     private labelText: BitmapText;
 
     constructor(width: number, height: number, tileSize: number, container: Container, textures: UiTextures) {
-        this.tab = new Tab(width, height, new ShopItem(Tower.empty, 0));
-        this.tab.addItem(new ShopItem(Tower.singleShot, 50));
-        this.tab.addItem(new ShopItem(Tower.doubleShot, 100));
+        this.tab = new Tab(width, height, new ShopItem(TowerStats.empty, 0));
+        this.tab.addItem(new ShopItem(TowerStats.singleShot, 50));
+        this.tab.addItem(new ShopItem(TowerStats.doubleShot, 100));
 
         this.footer = new Container();
         this.footer.y = tileSize * height;
@@ -239,12 +239,12 @@ class Shop {
 
         const selectedItem = this.tab.getSelectedItem();
 
-        if (selectedItem.tower.empty) {
+        if (selectedItem.towerStats.empty) {
             return;
         }
 
         this.footer.visible = true;
-        this.labelText.text = `The ${selectedItem.tower.name} $${selectedItem.cost}`;
+        this.labelText.text = `The ${selectedItem.towerStats.name} $${selectedItem.cost}`;
     }
 
     isBuyButtonHovered = (mouseX: number, mouseY: number) => {
@@ -394,12 +394,12 @@ export class Ui {
 
         const selectedItem = this.shop.tab.getSelectedItem();
 
-        if (selectedItem.tower.empty || selectedItem.cost > this.money) {
+        if (selectedItem.towerStats.empty || selectedItem.cost > this.money) {
             return;
         }
 
         this.money -= selectedItem.cost;
-        this.inventory.addTower(selectedItem.tower, 1);
+        this.inventory.addTower(selectedItem.towerStats, 1);
     }
 
     selectSlot = (tileX: number, tileY: number) => {

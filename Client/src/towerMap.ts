@@ -1,6 +1,7 @@
 import { Sprite } from "pixi.js";
-import { Tower } from "./tower";
+import { Tower, TowerStats } from "./tower";
 import { State } from "./state";
+import { Projectile } from "./projectile";
 
 export class TowerMap {
     private towers: Tower[];
@@ -35,13 +36,13 @@ export class TowerMap {
 
         const i = x + y * this.width;
 
-        const oldTower = this.getTower(x, y);
+        const oldTower = this.getTowerStats(x, y);
         if (!oldTower.empty && state.towerSprites[i] != null) {
             state.entitySpriteContainer.removeChild(state.towerSprites[i])
         }
 
         this.towers[i] = tower;
-        const towerSprite = new Sprite(state.towerTextures[tower.textureIndex]);
+        const towerSprite = new Sprite(state.towerTextures[tower.stats.textureIndex]);
         towerSprite.x = x * this.tileSize;
         towerSprite.y = y * this.tileSize;
         state.entitySpriteContainer.addChild(towerSprite);
@@ -57,5 +58,18 @@ export class TowerMap {
         }
 
         return this.towers[x + y * this.width];
+    }
+
+    getTowerStats = (x: number, y: number): TowerStats => {
+        return this.getTower(x, y).stats;
+    }
+
+    update = (state: State, deltaTime: number) => {
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const i = x + y * this.width;
+                this.towers[i].update(x, y, this.tileSize, state, deltaTime);
+            }
+        }
     }
 }

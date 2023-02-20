@@ -35,7 +35,7 @@ const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Te
 }
 
 const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => {
-    const oldTower = state.map.getTower(mouseTileX, mouseTileY);
+    const oldTower = state.map.getTowerStats(mouseTileX, mouseTileY);
 
     if (!oldTower.empty) {
         state.ui.inventory.stopUsingTower(oldTower, 1);
@@ -45,12 +45,12 @@ const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => 
 
     const selectedSlot = state.ui.getSelectedItem();
 
-    if (selectedSlot.tower.empty || !state.map.contains(mouseTileX, mouseTileY) ||
-        !state.ui.inventory.startUsingTower(selectedSlot.tower, 1)) {
+    if (selectedSlot.towerStats.empty || !state.map.contains(mouseTileX, mouseTileY) ||
+        !state.ui.inventory.startUsingTower(selectedSlot.towerStats, 1)) {
         return;
     }
 
-    state.map.setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
+    state.map.setTower(state, mouseTileX, mouseTileY, new Tower(selectedSlot.towerStats));
 }
 
 const update = async (state: State, deltaTime: number) => {
@@ -77,8 +77,20 @@ const update = async (state: State, deltaTime: number) => {
         TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
 
     for (let enemy of state.enemies) {
-        enemy.move(deltaTime, state.map);
+        enemy.update(deltaTime, state.map);
     }
+
+    for (let i = state.projectiles.length - 1; i >= 0; i--) {
+        const projectile = state.projectiles[i];
+
+        // Remove the projectile if it had a collision.
+        if (projectile.update(TILE_SIZE, state.enemies, 0)) {
+            projectile.destroy();
+            state.projectiles.splice(i, 1);
+        }
+    }
+
+    state.map.update(state, deltaTime);
 
     state.input.update();
 }
@@ -109,15 +121,7 @@ const main = async () => {
     const towerTextures = loadTextureSheet('towerSheet.png', TILE_SIZE, 2);
     const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 5);
     const enemyTextures = loadTextureSheet('enemySheet.png', TILE_SIZE, 2);
-
-    const playerTexture = Texture.from('1BitEngineer.png');
-    const playerSprite = new Sprite(playerTexture);
-    playerSprite.x = 0;
-    playerSprite.y = 0;
-    playerSprite.anchor.x = 0.5;
-    playerSprite.anchor.y = 0.5;
-    playerSprite.texture.baseTexture.scaleMode = SCALE_MODES.NEAREST;
-    scaledView.addChild(playerSprite);
+    const projectileTextures = loadTextureSheet('projectileSheet.png', TILE_SIZE, 3);
 
     const background = new Container();
     background.zIndex = -1;
@@ -152,11 +156,6 @@ const main = async () => {
     onResize(view, scaledView);
 
     window.addEventListener('resize', () => onResize(view, scaledView));
-    window.addEventListener('keydown', (e) => {
-        if (e.key == 'a') {
-            playerSprite.x -= 1;
-        }
-    });
 
     let state: State = {
         view,
@@ -170,6 +169,7 @@ const main = async () => {
             tabSelected: uiTextures[1],
             buyButton: uiTextures[4],
         }, scaledView),
+        projectileTextures,
         towerTextures,
         towerSprites: new Array(MAP_WIDTH * MAP_HEIGHT),
         entitySpriteContainer: new Container(),
@@ -177,6 +177,7 @@ const main = async () => {
         enemies: [],
         enemySpawner: new EnemySpawner(1),
         map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE),
+        projectiles: [],
     };
 
     state.input.addListeners();
