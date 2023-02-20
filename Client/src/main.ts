@@ -1,10 +1,10 @@
-import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont, Ticker } from 'pixi.js';
+import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont } from 'pixi.js';
 import { Tower } from './tower';
 import { Input } from './input';
 import { State } from './state';
 import { Ui } from './ui';
-import { Enemy, EnemyStats } from './enemy';
 import { EnemySpawner } from './enemySpawner';
+import { TowerMap } from './towerMap';
 
 const VIRTUAL_WIDTH = 320;
 const VIRTUAL_HEIGHT = 240;
@@ -23,49 +23,6 @@ const onResize = (view: Container, scaledView: Container) => {
     view.y = window.innerHeight / 2 - (VIRTUAL_HEIGHT * scale) / 2;
 }
 
-// TODO: Don't create/delete new sprites, create sprites on init then
-// change their textures like the UI does.
-const isInMap = (x: number, y: number): boolean => {
-    x = Math.floor(x);
-    y = Math.floor(y);
-
-    return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT
-}
-
-const setTower = (state: State, x: number, y: number, tower: Tower) => {
-    x = Math.floor(x);
-    y = Math.floor(y);
-
-    if (!isInMap(x, y)) {
-        return;
-    }
-
-    const i = x + y * MAP_WIDTH;
-
-    const oldTower = getTower(state, x, y);
-    if (!oldTower.empty && state.towerSprites[i] != null) {
-        state.entitySpriteContainer.removeChild(state.towerSprites[i])
-    }
-
-    state.towers[i] = tower;
-    const towerSprite = new Sprite(state.towerTextures[tower.textureIndex]);
-    towerSprite.x = x * TILE_SIZE;
-    towerSprite.y = y * TILE_SIZE;
-    state.entitySpriteContainer.addChild(towerSprite);
-    state.towerSprites[i] = towerSprite;
-}
-
-const getTower = (state: State, x: number, y: number): Tower => {
-    x = Math.floor(x);
-    y = Math.floor(y);
-
-    if (!isInMap(x, y)) {
-        return Tower.empty;
-    }
-
-    return state.towers[x + y * MAP_WIDTH];
-}
-
 const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Texture[] => {
     const sheet = Texture.from(path);
     sheet.baseTexture.scaleMode = SCALE_MODES.NEAREST;
@@ -78,27 +35,22 @@ const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Te
 }
 
 const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => {
-    const oldTower = getTower(state, mouseTileX, mouseTileY);
+    const oldTower = state.map.getTower(mouseTileX, mouseTileY);
 
     if (!oldTower.empty) {
         state.ui.inventory.stopUsingTower(oldTower, 1);
-        setTower(state, mouseTileX, mouseTileY, Tower.empty);
+        state.map.setTower(state, mouseTileX, mouseTileY, Tower.empty);
         return;
     }
 
     const selectedSlot = state.ui.getSelectedItem();
 
-    if (selectedSlot.tower.empty || !isInMap(mouseTileX, mouseTileY) ||
+    if (selectedSlot.tower.empty || !state.map.contains(mouseTileX, mouseTileY) ||
         !state.ui.inventory.startUsingTower(selectedSlot.tower, 1)) {
         return;
     }
 
-    setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
-}
-
-const spawnEnemy = (state: State) => {
-    const lane = Math.floor(Math.random() * MAP_HEIGHT);
-    state.enemies.push(new Enemy(EnemyStats.zombie, 200, lane, TILE_SIZE, state.enemyTextures, state.entitySpriteContainer));
+    state.map.setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
 }
 
 const update = async (state: State, deltaTime: number) => {
@@ -125,7 +77,7 @@ const update = async (state: State, deltaTime: number) => {
         TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
 
     for (let enemy of state.enemies) {
-        enemy.move(deltaTime);
+        enemy.move(deltaTime, state.map);
     }
 
     state.input.update();
@@ -218,18 +170,17 @@ const main = async () => {
             tabSelected: uiTextures[1],
             buyButton: uiTextures[4],
         }, scaledView),
-        towers: new Array(MAP_WIDTH * MAP_HEIGHT),
         towerTextures,
         towerSprites: new Array(MAP_WIDTH * MAP_HEIGHT),
         entitySpriteContainer: new Container(),
         enemyTextures,
         enemies: [],
         enemySpawner: new EnemySpawner(1),
+        map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE),
     };
 
     state.input.addListeners();
 
-    state.towers.fill(Tower.empty);
     state.entitySpriteContainer.x = background.x;
     state.entitySpriteContainer.y = background.y;
     scaledView.addChild(state.entitySpriteContainer);

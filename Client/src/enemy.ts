@@ -1,4 +1,5 @@
 import { Container, Sprite, Texture } from "pixi.js";
+import { TowerMap } from "./towerMap";
 
 export class EnemyStats {
     public readonly name: string;
@@ -33,7 +34,14 @@ export class Enemy {
         container.addChild(this.sprite);
     }
 
-    move = (deltaTime: number) => {
+    move = (deltaTime: number, map: TowerMap) => {
+        const tileX = this.x / map.tileSize;
+        const tileY = this.y / map.tileSize;
+
+        if (!map.getTower(tileX, tileY).empty) {
+            return;
+        }
+
         this.x -= this.stats.speed * deltaTime;
         this.sprite.x = this.x;
     }

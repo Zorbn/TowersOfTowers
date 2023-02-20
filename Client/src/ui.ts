@@ -249,7 +249,6 @@ class Shop {
 
     isBuyButtonHovered = (mouseX: number, mouseY: number) => {
         const buyButtonBounds = this.buyButton.getBounds();
-        console.log(buyButtonBounds);
         return buyButtonBounds.contains(mouseX, mouseY);
     }
 }
@@ -392,8 +391,6 @@ export class Ui {
         if (!this.shop.isBuyButtonHovered(mouseX, mouseY)) {
             return;
         }
-
-        console.log(this.money);
 
         const selectedItem = this.shop.tab.getSelectedItem();
 
