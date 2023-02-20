@@ -1,8 +1,10 @@
-import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont } from 'pixi.js';
+import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont, Ticker } from 'pixi.js';
 import { Tower } from './tower';
 import { Input } from './input';
 import { State } from './state';
 import { Ui } from './ui';
+import { Enemy, EnemyStats } from './enemy';
+import { EnemySpawner } from './enemySpawner';
 
 const VIRTUAL_WIDTH = 320;
 const VIRTUAL_HEIGHT = 240;
@@ -42,14 +44,14 @@ const setTower = (state: State, x: number, y: number, tower: Tower) => {
 
     const oldTower = getTower(state, x, y);
     if (!oldTower.empty && state.towerSprites[i] != null) {
-        state.towerSpriteContainer.removeChild(state.towerSprites[i])
+        state.entitySpriteContainer.removeChild(state.towerSprites[i])
     }
 
     state.towers[i] = tower;
     const towerSprite = new Sprite(state.towerTextures[tower.textureIndex]);
     towerSprite.x = x * TILE_SIZE;
     towerSprite.y = y * TILE_SIZE;
-    state.towerSpriteContainer.addChild(towerSprite);
+    state.entitySpriteContainer.addChild(towerSprite);
     state.towerSprites[i] = towerSprite;
 }
 
@@ -94,7 +96,12 @@ const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => 
     setTower(state, mouseTileX, mouseTileY, selectedSlot.tower);
 }
 
-const update = async (state: State, _deltaTime: number) => {
+const spawnEnemy = (state: State) => {
+    const lane = Math.floor(Math.random() * MAP_HEIGHT);
+    state.enemies.push(new Enemy(EnemyStats.zombie, 200, lane, TILE_SIZE, state.enemyTextures, state.entitySpriteContainer));
+}
+
+const update = async (state: State, deltaTime: number) => {
     state.ui.draw(state.towerTextures, TILE_SIZE);
 
     if (state.input.wasKeyPressed('KeyM')) {
@@ -106,12 +113,19 @@ const update = async (state: State, _deltaTime: number) => {
         const mouseY = state.input.getMouseY();
         const mouseWorldX = state.input.getMouseWorldX(state);
         const mouseWorldY = state.input.getMouseWorldY(state);
-        const mouseTileX = (mouseWorldX - state.towerSpriteContainer.x) / TILE_SIZE;
-        const mouseTileY = (mouseWorldY - state.towerSpriteContainer.y) / TILE_SIZE;
+        const mouseTileX = (mouseWorldX - state.entitySpriteContainer.x) / TILE_SIZE;
+        const mouseTileY = (mouseWorldY - state.entitySpriteContainer.y) / TILE_SIZE;
 
         state.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, TILE_SIZE);
 
         tryPlaceTower(state, mouseTileX, mouseTileY);
+    }
+
+    state.enemySpawner.update(state.enemies, deltaTime, MAP_WIDTH, MAP_HEIGHT,
+        TILE_SIZE, state.enemyTextures, state.entitySpriteContainer);
+
+    for (let enemy of state.enemies) {
+        enemy.move(deltaTime);
     }
 
     state.input.update();
@@ -142,6 +156,7 @@ const main = async () => {
     const tileTextures = loadTextureSheet('tileSheet.png', TILE_SIZE, 2);
     const towerTextures = loadTextureSheet('towerSheet.png', TILE_SIZE, 2);
     const uiTextures = loadTextureSheet('uiSheet.png', TILE_SIZE, 5);
+    const enemyTextures = loadTextureSheet('enemySheet.png', TILE_SIZE, 2);
 
     const playerTexture = Texture.from('1BitEngineer.png');
     const playerSprite = new Sprite(playerTexture);
@@ -206,17 +221,20 @@ const main = async () => {
         towers: new Array(MAP_WIDTH * MAP_HEIGHT),
         towerTextures,
         towerSprites: new Array(MAP_WIDTH * MAP_HEIGHT),
-        towerSpriteContainer: new Container()
+        entitySpriteContainer: new Container(),
+        enemyTextures,
+        enemies: [],
+        enemySpawner: new EnemySpawner(1),
     };
 
     state.input.addListeners();
 
     state.towers.fill(Tower.empty);
-    state.towerSpriteContainer.x = background.x;
-    state.towerSpriteContainer.y = background.y;
-    scaledView.addChild(state.towerSpriteContainer);
+    state.entitySpriteContainer.x = background.x;
+    state.entitySpriteContainer.y = background.y;
+    scaledView.addChild(state.entitySpriteContainer);
 
-    app.ticker.add(() => update(state, app.ticker.deltaTime));
+    app.ticker.add(() => update(state, app.ticker.deltaMS * 0.001));
 }
 
 main();

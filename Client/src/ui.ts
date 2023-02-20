@@ -1,6 +1,8 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
 import { Tower } from "./tower";
 
+const STARTING_MONEY = 100;
+
 export type UiTextures = {
     slotBackground: Texture,
     slotSelected: Texture,
@@ -321,7 +323,7 @@ export class Ui {
         this.selectedTabSprite.x = tabStartX;
         container.addChild(this.selectedTabSprite);
 
-        this.money = 0;
+        this.money = STARTING_MONEY;
         this.moneyText = new BitmapText("", { fontName: 'DefaultFont' });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
         this.moneyText.y = tileSize * 0.1;
