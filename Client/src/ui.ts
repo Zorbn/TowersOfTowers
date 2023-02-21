@@ -5,6 +5,8 @@ import towerStatsData from "./towers.json";
 
 const STARTING_MONEY = 100;
 const SAVE_IDENTIFIER = "saveData";
+const ITEM_ACTIVE_COLOR = 0xffffff;
+const ITEM_INACTIVE_COLOR = 0x888888;
 
 export type UiTextures = {
     slotBackground: Texture,
@@ -77,9 +79,6 @@ interface ITab {
     selectSlot(i: number): void;
     getSelectedSlot(): number;
 }
-
-const ITEM_ACTIVE_COLOR = 0xffffff;
-const ITEM_INACTIVE_COLOR = 0xaaaaaa;
 
 class Tab<T extends Item> {
     private slots: T[];

@@ -20,4 +20,6 @@ export type State = {
     map: TowerMap,
     projectiles: Projectile[],
     projectileTextures: Texture[],
+    tileSprites: Sprite[],
+    tileTextures: Texture[],
 }

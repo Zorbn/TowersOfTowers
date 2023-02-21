@@ -66,7 +66,7 @@ export class Tower {
         }
 
         this.attackTimer = 0;
-        const x = tileX * tileSize;
+        const x = (tileX + 0.5) * tileSize;
         const y = tileY * tileSize;
         state.projectiles.push(new Projectile(this.stats.projectileStats, x, y,
             state.projectileTextures, state.entitySpriteContainer));
