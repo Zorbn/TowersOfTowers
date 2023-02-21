@@ -16,6 +16,8 @@ export type UiTextures = {
     startButton: Texture,
     buttonSelected: Texture,
     saveButton: Texture,
+    downloadButton: Texture,
+    uploadButton: Texture,
 }
 
 enum TabType {
@@ -42,6 +44,8 @@ class InventoryItem implements Item {
     isActive(_money: number): boolean {
         return this.used < this.owned;
     }
+
+    public static readonly empty = new InventoryItem(TowerStats.empty, 0, 0);
 }
 
 type SaveInventoryItem = {
@@ -87,8 +91,12 @@ class Tab<T extends Item> {
         this.width = width;
         this.height = height;
         this.slots = new Array(width * height);
-        this.slots.fill(defaultItem);
+        this.clear(defaultItem);
         this.selectedSlot = 0;
+    }
+
+    clear = (defaultItem: T) => {
+        this.slots.fill(defaultItem);
     }
 
     draw = (towerTextures: Texture[], slotItemSprites: Sprite[], money: number): void => {
@@ -155,7 +163,7 @@ class Inventory {
     private dirty: boolean;
 
     constructor(width: number, height: number, tileSize: number, container: Container) {
-        this.tab = new Tab(width, height, new InventoryItem(TowerStats.empty, 0, 0));
+        this.tab = new Tab(width, height, InventoryItem.empty);
         this.footer = new Container();
         this.footer.y = tileSize * height;
         container.addChild(this.footer);
@@ -168,6 +176,10 @@ class Inventory {
         this.footer.addChild(this.labelText);
 
         this.dirty = false;
+    }
+
+    clear = () => {
+        this.tab.clear(InventoryItem.empty);
     }
 
     addTower = (towerStats: TowerStats, quantity: number) => {
@@ -244,7 +256,7 @@ class Inventory {
 class Shop {
     public readonly tab: Tab<ShopItem>;
     private footer: Container;
-    private buyButton: Sprite;
+    private buyButtonSprite: Sprite;
     private labelText: BitmapText;
 
     constructor(width: number, height: number, tileSize: number, container: Container, textures: UiTextures) {
@@ -261,10 +273,10 @@ class Shop {
         this.footer.y = tileSize * height;
         container.addChild(this.footer);
 
-        this.buyButton = new Sprite(textures.buyButton);
-        this.buyButton.y = tileSize * 0.25;
-        this.buyButton.x = tileSize * 0.25;
-        this.footer.addChild(this.buyButton);
+        this.buyButtonSprite = new Sprite(textures.buyButton);
+        this.buyButtonSprite.y = tileSize * 0.25;
+        this.buyButtonSprite.x = tileSize * 0.25;
+        this.footer.addChild(this.buyButtonSprite);
 
         this.labelText = new BitmapText("", { fontName: "DefaultFont" });
         this.labelText.x = tileSize * 1.5;
@@ -292,8 +304,7 @@ class Shop {
     }
 
     isBuyButtonHovered = (mouseX: number, mouseY: number) => {
-        const buyButtonBounds = this.buyButton.getBounds();
-        return buyButtonBounds.contains(mouseX, mouseY);
+        return Ui.isInSpriteBounds(this.buyButtonSprite, mouseX, mouseY);
     }
 }
 
@@ -362,6 +373,11 @@ export class Ui {
 
     private saveButtonSprite: Sprite;
     private selectedSaveButtonSprite: Sprite;
+
+    private downloadButtonSprite: Sprite;
+    private uploadButtonSprite: Sprite;
+
+    private saveInput: HTMLInputElement;
 
     constructor(tileSize: number, slotsWidth: number, slotsHeight: number, viewWidth: number, _viewHeight: number, textures: UiTextures, container: Container) {
         const slotCount = slotsWidth * slotsHeight;
@@ -434,6 +450,23 @@ export class Ui {
         this.selectedSaveButtonSprite.zIndex = 1;
         container.addChild(this.selectedSaveButtonSprite);
 
+        this.uploadButtonSprite = new Sprite(textures.uploadButton);
+        this.uploadButtonSprite.x = this.saveButtonSprite.x - tileSize;
+        container.addChild(this.uploadButtonSprite);
+
+        this.saveInput = document.getElementById("saveInput") as HTMLInputElement;
+        this.saveInput.onchange = async () => {
+            if (this.saveInput.files != null && this.saveInput.files.length > 0) {
+                const file = this.saveInput.files[0];
+                const text = await file.text();
+                this.load(text);
+            }
+        }
+
+        this.downloadButtonSprite = new Sprite(textures.downloadButton);
+        this.downloadButtonSprite.x = this.uploadButtonSprite.x - tileSize;
+        container.addChild(this.downloadButtonSprite);
+
         this.moneyText = new BitmapText("", { fontName: "DefaultFont" });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
         this.moneyText.y = tileSize * 0.1;
@@ -455,6 +488,8 @@ export class Ui {
         const savedData = localStorage.getItem(SAVE_IDENTIFIER);
         if (savedData != null) {
             this.load(savedData);
+            this.inventory.markClean();
+            this.bank.markClean();
         }
     }
 
@@ -539,13 +574,41 @@ export class Ui {
     }
 
     interactWithSaveButton = (mouseX: number, mouseY: number) => {
-        const saveButtonBounds = this.saveButtonSprite.getBounds();
-        if (!saveButtonBounds.contains(mouseX, mouseY)) {
+        if (!Ui.isInSpriteBounds(this.saveButtonSprite, mouseX, mouseY)) {
             return;
         }
 
         const saveData = this.save();
         localStorage.setItem(SAVE_IDENTIFIER, saveData);
+
+        this.inventory.markClean();
+        this.bank.markClean();
+    }
+
+    interactWithDownloadButton = (mouseX: number, mouseY: number) => {
+        if (!Ui.isInSpriteBounds(this.downloadButtonSprite, mouseX, mouseY)) {
+            return;
+        }
+
+        const saveData = this.save();
+
+        // Create an element that handles downloading, then remove it
+        // once the download has completed.
+        const element = document.createElement("a");
+        element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(saveData));
+        element.setAttribute("download", "save.json");
+        element.style.display = "none";
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+
+    interactWithUploadButton = (mouseX: number, mouseY: number) => {
+        if (!Ui.isInSpriteBounds(this.uploadButtonSprite, mouseX, mouseY)) {
+            return;
+        }
+
+        this.saveInput.click();
     }
 
     interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, state: State) => {
@@ -558,6 +621,8 @@ export class Ui {
         this.interactWithBuyButton(mouseX, mouseY);
         this.interactWithStartButton(mouseX, mouseY, state);
         this.interactWithSaveButton(mouseX, mouseY);
+        this.interactWithDownloadButton(mouseX, mouseY);
+        this.interactWithUploadButton(mouseX, mouseY);
     }
 
     selectSlot = (tileX: number, tileY: number) => {
@@ -604,9 +669,6 @@ export class Ui {
             });
         }
 
-        this.inventory.markClean();
-        this.bank.markClean();
-
         return JSON.stringify({
             money: this.bank.getMoney(),
             items: inventoryItems,
@@ -614,9 +676,22 @@ export class Ui {
     }
 
     load = (json: string) => {
-        const saveData: SaveData = JSON.parse(json);
+        let saveData: SaveData;
+
+        try {
+            saveData = JSON.parse(json);
+        } catch {
+            console.log("User supplied invalid save.json");
+            return;
+        }
+
+        this.inventory.clear();
 
         for (let item of saveData.items) {
+            if (item.owned < 1) {
+                continue;
+            }
+
             let itemTowerStats: TowerStats | null = null;
 
             for (let towerStats of TowerStats.loadedTowerStats) {
@@ -634,8 +709,10 @@ export class Ui {
         }
 
         this.bank.setMoney(saveData.money);
+    }
 
-        this.inventory.markClean();
-        this.bank.markClean();
+    static isInSpriteBounds(sprite: Sprite, x: number, y: number): boolean {
+        const bounds = sprite.getBounds();
+        return bounds.contains(x, y);
     }
 }

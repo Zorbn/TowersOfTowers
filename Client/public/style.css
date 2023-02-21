@@ -30,3 +30,7 @@ h1 {
 canvas {
     position: absolute;
 }
+
+#saveInput {
+    display: none;
+}

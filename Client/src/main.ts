@@ -146,7 +146,7 @@ const main = async () => {
 
     const tileTextures = loadTextureSheet("tileSheet.png", TILE_SIZE, 2);
     const towerTextures = loadTextureSheet("towerSheet.png", TILE_SIZE, 3);
-    const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 7);
+    const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 9);
     const enemyTextures = loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
     const projectileTextures = loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
 
@@ -199,6 +199,8 @@ const main = async () => {
             startButton: uiTextures[5],
             buttonSelected: uiTextures[1],
             saveButton: uiTextures[6],
+            downloadButton: uiTextures[7],
+            uploadButton: uiTextures[8],
         }, scaledView),
         projectileTextures,
         towerTextures,
