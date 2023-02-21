@@ -6,8 +6,8 @@ import { Ui } from "./ui";
 import { EnemySpawner } from "./enemySpawner";
 import { TowerMap } from "./towerMap";
 
-const VIRTUAL_WIDTH = 320;
-const VIRTUAL_HEIGHT = 240;
+const VIEW_WIDTH = 320;
+const VIEW_HEIGHT = 240;
 
 const MAP_WIDTH = 15;
 const MAP_HEIGHT = 4;
@@ -16,18 +16,17 @@ const TILE_SIZE = 16;
 // TODO:
 // Particles, could be used for damage, spawning, destroying
 // Animated enemies?
-// Loading towers/enemies/projecties from json files?
 // Saving?
 // Networking?
 
 const onResize = (view: Container, scaledView: Container) => {
-    let scale = Math.min(window.innerWidth / VIRTUAL_WIDTH, window.innerHeight / VIRTUAL_HEIGHT);
+    let scale = Math.min(window.innerWidth / VIEW_WIDTH, window.innerHeight / VIEW_HEIGHT);
 
     scaledView.scale.x = scale;
     scaledView.scale.y = scale;
 
-    view.x = window.innerWidth / 2 - (VIRTUAL_WIDTH * scale) / 2;
-    view.y = window.innerHeight / 2 - (VIRTUAL_HEIGHT * scale) / 2;
+    view.x = window.innerWidth / 2 - (VIEW_WIDTH * scale) / 2;
+    view.y = window.innerHeight / 2 - (VIEW_HEIGHT * scale) / 2;
 }
 
 const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Texture[] => {
@@ -88,8 +87,9 @@ const updateEnemies = (state: State, deltaTime: number) => {
 const update = async (state: State, deltaTime: number) => {
     state.ui.draw(state, TILE_SIZE);
 
+    // TODO: Remove this.
     if (state.input.wasKeyPressed("KeyM")) {
-        state.ui.addMoney(25);
+        state.ui.bank.addMoney(25);
     }
 
     if (state.input.wasMouseButtonPressed(0)) {
@@ -146,14 +146,14 @@ const main = async () => {
 
     const tileTextures = loadTextureSheet("tileSheet.png", TILE_SIZE, 2);
     const towerTextures = loadTextureSheet("towerSheet.png", TILE_SIZE, 3);
-    const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 6);
+    const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 7);
     const enemyTextures = loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
     const projectileTextures = loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
 
     const background = new Container();
     background.zIndex = -1;
-    background.x = VIRTUAL_WIDTH * 0.5 - MAP_WIDTH * TILE_SIZE * 0.5;
-    background.y = VIRTUAL_HEIGHT * 0.5 - MAP_HEIGHT * TILE_SIZE * 0.5 + TILE_SIZE * 4;
+    background.x = VIEW_WIDTH * 0.5 - MAP_WIDTH * TILE_SIZE * 0.5;
+    background.y = VIEW_HEIGHT * 0.5 - MAP_HEIGHT * TILE_SIZE * 0.5 + TILE_SIZE * 4;
 
     const playerBaseTexture = Texture.from("playerBase.png");
     const playerBaseSprite = new Sprite(playerBaseTexture);
@@ -188,7 +188,8 @@ const main = async () => {
         view,
         scaledView,
         input: new Input(),
-        ui: new Ui(TILE_SIZE, 9, 3, {
+        ui: new Ui(TILE_SIZE, 9, 3,
+            VIEW_WIDTH, VIEW_HEIGHT, {
             slotBackground: uiTextures[0],
             slotSelected: uiTextures[1],
             tabInventory: uiTextures[2],
@@ -197,6 +198,7 @@ const main = async () => {
             buyButton: uiTextures[4],
             startButton: uiTextures[5],
             buttonSelected: uiTextures[1],
+            saveButton: uiTextures[6],
         }, scaledView),
         projectileTextures,
         towerTextures,

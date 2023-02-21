@@ -1,9 +1,10 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
 import { State } from "./state";
 import { TowerStats } from "./tower";
-import towerStatsData from "../public/towers.json";
+import towerStatsData from "./towers.json";
 
 const STARTING_MONEY = 100;
+const SAVE_IDENTIFIER = "saveData";
 
 export type UiTextures = {
     slotBackground: Texture,
@@ -14,6 +15,7 @@ export type UiTextures = {
     buyButton: Texture,
     startButton: Texture,
     buttonSelected: Texture,
+    saveButton: Texture,
 }
 
 enum TabType {
@@ -41,6 +43,16 @@ class InventoryItem implements Item {
         return this.used < this.owned;
     }
 }
+
+type SaveInventoryItem = {
+    name: string,
+    owned: number,
+};
+
+type SaveData = {
+    money: number,
+    items: SaveInventoryItem[],
+};
 
 class ShopItem implements Item {
     public towerStats: TowerStats;
@@ -124,12 +136,23 @@ class Tab<T extends Item> {
 
         return null;
     }
+
+    getSlot = (i: number): T => {
+        return this.slots[i];
+    }
+
+    getSlotCount = (): number => {
+        return this.slots.length;
+    }
 }
 
+// TODO: Consider making interface for isDirty, markClean?
+// is there value to that?
 class Inventory {
     public readonly tab: Tab<InventoryItem>;
     private footer: Container;
     private labelText: BitmapText;
+    private dirty: boolean;
 
     constructor(width: number, height: number, tileSize: number, container: Container) {
         this.tab = new Tab(width, height, new InventoryItem(TowerStats.empty, 0, 0));
@@ -143,9 +166,13 @@ class Inventory {
         this.labelText.scale.x = 0.2;
         this.labelText.scale.y = 0.2;
         this.footer.addChild(this.labelText);
+
+        this.dirty = false;
     }
 
     addTower = (towerStats: TowerStats, quantity: number) => {
+        this.dirty = true;
+
         let item = this.tab.getItem(towerStats);
 
         if (item == null) {
@@ -203,6 +230,14 @@ class Inventory {
         this.footer.visible = true;
         const remainingTowers = selectedItem.owned - selectedItem.used;
         this.labelText.text = `The ${selectedItem.towerStats.name} ${remainingTowers}/${selectedItem.owned}`;
+    }
+
+    isDirty = () => {
+        return this.dirty;
+    }
+
+    markClean = () => {
+        this.dirty = false;
     }
 }
 
@@ -262,13 +297,52 @@ class Shop {
     }
 }
 
-export class Ui {
-    public inventory: Inventory;
-    public shop: Shop;
-
+class Bank {
     private money: number;
-    private moneyText: BitmapText;
+    private dirty: boolean;
 
+    constructor(money: number) {
+        this.money = money;
+        this.dirty = false;
+    }
+
+    addMoney = (amount: number) => {
+        this.setMoney(this.money + amount);
+    }
+
+    spendMoney = (amount: number): boolean => {
+        if (this.money < amount) {
+            return false;
+        }
+
+        this.setMoney(this.money - amount);
+        return true;
+    }
+
+    getMoney = (): number => {
+        return this.money;
+    }
+
+    setMoney = (amount: number) => {
+        this.money = amount;
+        this.dirty = true;
+    }
+
+    isDirty = (): boolean => {
+        return this.dirty;
+    }
+
+    markClean = () => {
+        this.dirty = false;
+    }
+}
+
+export class Ui {
+    public readonly inventory: Inventory;
+    public readonly shop: Shop;
+    public readonly bank: Bank;
+
+    private moneyText: BitmapText;
     private waveText: BitmapText;
 
     private slotBackgroundSprites: Sprite[];
@@ -286,15 +360,18 @@ export class Ui {
     private startButtonSprite: Sprite;
     private selectedStartButtonSprite: Sprite;
 
-    constructor(tileSize: number, width: number, height: number, textures: UiTextures, container: Container) {
-        const slotCount = width * height;
+    private saveButtonSprite: Sprite;
+    private selectedSaveButtonSprite: Sprite;
+
+    constructor(tileSize: number, slotsWidth: number, slotsHeight: number, viewWidth: number, _viewHeight: number, textures: UiTextures, container: Container) {
+        const slotCount = slotsWidth * slotsHeight;
         this.slotBackgroundSprites = new Array(slotCount);
         this.slotItemSprites = new Array(slotCount);
-        this.slotsWidth = width;
-        this.slotsHeight = height;
+        this.slotsWidth = slotsWidth;
+        this.slotsHeight = slotsHeight;
 
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
+        for (let y = 0; y < slotsHeight; y++) {
+            for (let x = 0; x < slotsWidth; x++) {
                 const slotBackgroundSprite = new Sprite(textures.slotBackground);
                 slotBackgroundSprite.x = x * tileSize;
                 slotBackgroundSprite.y = y * tileSize;
@@ -303,7 +380,7 @@ export class Ui {
                 slotItemSprite.x = slotBackgroundSprite.x;
                 slotItemSprite.y = slotBackgroundSprite.y;
 
-                const i = x + y * width;
+                const i = x + y * slotsWidth;
                 this.slotBackgroundSprites[i] = slotBackgroundSprite;
                 this.slotItemSprites[i] = slotItemSprite;
 
@@ -347,7 +424,16 @@ export class Ui {
         this.selectedStartButtonSprite.zIndex = 1;
         container.addChild(this.selectedStartButtonSprite);
 
-        this.money = STARTING_MONEY;
+        this.saveButtonSprite = new Sprite(textures.saveButton);
+        this.saveButtonSprite.x = viewWidth - tileSize;
+        container.addChild(this.saveButtonSprite);
+
+        this.selectedSaveButtonSprite = new Sprite(textures.buttonSelected);
+        this.selectedSaveButtonSprite.x = this.saveButtonSprite.x;
+        this.selectedSaveButtonSprite.y = this.saveButtonSprite.y;
+        this.selectedSaveButtonSprite.zIndex = 1;
+        container.addChild(this.selectedSaveButtonSprite);
+
         this.moneyText = new BitmapText("", { fontName: "DefaultFont" });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
         this.moneyText.y = tileSize * 0.1;
@@ -362,8 +448,14 @@ export class Ui {
         this.waveText.scale.y = this.moneyText.scale.y;
         container.addChild(this.waveText);
 
-        this.inventory = new Inventory(width, height, tileSize, container);
-        this.shop = new Shop(width, height, tileSize, container, textures);
+        this.inventory = new Inventory(slotsWidth, slotsHeight, tileSize, container);
+        this.shop = new Shop(slotsWidth, slotsHeight, tileSize, container, textures);
+        this.bank = new Bank(STARTING_MONEY);
+
+        const savedData = localStorage.getItem(SAVE_IDENTIFIER);
+        if (savedData != null) {
+            this.load(savedData);
+        }
     }
 
     private getSelectedTab = (): ITab => {
@@ -382,7 +474,7 @@ export class Ui {
     }
 
     draw = (state: State, tileSize: number) => {
-        this.moneyText.text = `$${this.money}`;
+        this.moneyText.text = `$${this.bank.getMoney()}`;
 
         if (state.enemySpawner.isActive()) {
             this.selectedStartButtonSprite.visible = false;
@@ -391,6 +483,8 @@ export class Ui {
             this.selectedStartButtonSprite.visible = true;
             this.waveText.text = "Get ready...";
         }
+
+        this.selectedSaveButtonSprite.visible = this.inventory.isDirty() || this.bank.isDirty();
 
         let tab = this.getSelectedTab();
 
@@ -406,14 +500,10 @@ export class Ui {
         this.selectedTabSprite.x = (this.slotsWidth + selectedTabX) * tileSize;
         this.selectedTabSprite.y = selectedTabY * tileSize;
 
-        tab.draw(state.towerTextures, this.slotItemSprites, this.money);
+        tab.draw(state.towerTextures, this.slotItemSprites, this.bank.getMoney());
 
         this.shop.draw(this.selectedTab);
         this.inventory.draw(this.selectedTab);
-    }
-
-    addMoney = (amount: number) => {
-        this.money += amount;
     }
 
     interactWithBuyButton = (mouseX: number, mouseY: number) => {
@@ -428,11 +518,10 @@ export class Ui {
 
         const selectedItem = this.shop.tab.getSelectedItem();
 
-        if (selectedItem.towerStats.empty || selectedItem.cost > this.money) {
+        if (selectedItem.towerStats.empty || !this.bank.spendMoney(selectedItem.cost)) {
             return;
         }
 
-        this.money -= selectedItem.cost;
         this.inventory.addTower(selectedItem.towerStats, 1);
     }
 
@@ -449,6 +538,16 @@ export class Ui {
         state.enemySpawner.start();
     }
 
+    interactWithSaveButton = (mouseX: number, mouseY: number) => {
+        const saveButtonBounds = this.saveButtonSprite.getBounds();
+        if (!saveButtonBounds.contains(mouseX, mouseY)) {
+            return;
+        }
+
+        const saveData = this.save();
+        localStorage.setItem(SAVE_IDENTIFIER, saveData);
+    }
+
     interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, state: State) => {
         const mouseTileX = mouseWorldX / state.map.tileSize;
         const mouseTileY = mouseWorldY / state.map.tileSize;
@@ -458,6 +557,7 @@ export class Ui {
 
         this.interactWithBuyButton(mouseX, mouseY);
         this.interactWithStartButton(mouseX, mouseY, state);
+        this.interactWithSaveButton(mouseX, mouseY);
     }
 
     selectSlot = (tileX: number, tileY: number) => {
@@ -486,5 +586,56 @@ export class Ui {
 
     getSelectedItem(): InventoryItem {
         return this.inventory.tab.getSelectedItem();
+    }
+
+    save = (): string => {
+        const inventoryItems = [];
+
+        for (let i = 0; i < this.inventory.tab.getSlotCount(); i++) {
+            const slot = this.inventory.tab.getSlot(i);
+
+            if (slot.towerStats.empty) {
+                continue;
+            }
+
+            inventoryItems.push({
+                name: slot.towerStats.name,
+                owned: slot.owned,
+            });
+        }
+
+        this.inventory.markClean();
+        this.bank.markClean();
+
+        return JSON.stringify({
+            money: this.bank.getMoney(),
+            items: inventoryItems,
+        });
+    }
+
+    load = (json: string) => {
+        const saveData: SaveData = JSON.parse(json);
+
+        for (let item of saveData.items) {
+            let itemTowerStats: TowerStats | null = null;
+
+            for (let towerStats of TowerStats.loadedTowerStats) {
+                if (towerStats.name == item.name) {
+                    itemTowerStats = towerStats;
+                    break;
+                }
+            }
+
+            if (itemTowerStats == null) {
+                continue;
+            }
+
+            this.inventory.tab.addItem(new InventoryItem(itemTowerStats, item.owned, 0));
+        }
+
+        this.bank.setMoney(saveData.money);
+
+        this.inventory.markClean();
+        this.bank.markClean();
     }
 }

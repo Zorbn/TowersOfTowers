@@ -1,7 +1,7 @@
 import { Container, Sprite, Texture } from "pixi.js";
 import { State } from "./state";
 import { Tower } from "./tower";
-import enemyStatsData from "../public/enemies.json";
+import enemyStatsData from "./enemies.json";
 
 export class EnemyStats {
     public readonly name: string;

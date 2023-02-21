@@ -1,7 +1,6 @@
 import { Sprite } from "pixi.js";
 import { Tower, TowerStats } from "./tower";
 import { State } from "./state";
-import { Projectile } from "./projectile";
 
 export class TowerMap {
     private towers: Tower[];

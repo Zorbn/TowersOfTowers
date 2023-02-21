@@ -1,5 +1,4 @@
 import { Container, Sprite, Texture } from "pixi.js";
-import { Enemy } from "./enemy";
 import { State } from "./state";
 
 export class ProjectileStats {
@@ -58,7 +57,7 @@ export class Projectile {
 
             // Remove the enemy if it died.
             if (enemy.takeDamage(this.stats.damage)) {
-                state.ui.addMoney(enemy.stats.value);
+                state.ui.bank.addMoney(enemy.stats.value);
                 state.enemies.splice(i, 1);
             }
 

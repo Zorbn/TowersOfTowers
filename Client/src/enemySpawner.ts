@@ -1,6 +1,6 @@
 import { Enemy, EnemyStats } from "./enemy";
 import { State } from "./state";
-import enemyStatsData from "../public/enemies.json";
+import enemyStatsData from "./enemies.json";
 
 const ENEMY_SPAWN_WIDTH = 2;
 const ENEMY_WAVE_LENGTH = 30;

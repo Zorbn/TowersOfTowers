@@ -1,6 +1,6 @@
 import { Projectile, ProjectileStats } from "./projectile";
 import { State } from "./state";
-import towerStatsData from "../public/towers.json";
+import towerStatsData from "./towers.json";
 
 export class TowerStats {
     public readonly name: string;
