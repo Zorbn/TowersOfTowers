@@ -13,6 +13,7 @@ const MAP_WIDTH = 15;
 const MAP_HEIGHT = 4;
 const TILE_SIZE = 16;
 const BASE_WIDTH = 3;
+const TEXTURE_SHEET_PADDING = 1;
 
 // TODO:
 // Particles, could be used for damage, spawning, destroying
@@ -34,7 +35,9 @@ const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Te
     sheet.baseTexture.scaleMode = SCALE_MODES.NEAREST;
     let textures = new Array(tileCount);
     for (let i = 0; i < tileCount; i++) {
-        textures[i] = new Texture(sheet.baseTexture, new Rectangle(tileSize * i, 0, tileSize, tileSize));
+        const x = TEXTURE_SHEET_PADDING + (tileSize + TEXTURE_SHEET_PADDING * 2) * i;
+        const y = TEXTURE_SHEET_PADDING;
+        textures[i] = new Texture(sheet.baseTexture, new Rectangle(x, y, tileSize, tileSize));
     }
 
     return textures;
