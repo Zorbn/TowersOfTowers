@@ -1,6 +1,7 @@
 import { Sprite } from "pixi.js";
 import { Tower, TowerStats } from "./tower";
 import { State } from "./state";
+import { Particle, ParticleStats } from "./particle";
 
 export class TowerMap {
     private towers: Tower[];
@@ -46,6 +47,12 @@ export class TowerMap {
         towerSprite.y = y * this.tileSize;
         state.entitySpriteContainer.addChild(towerSprite);
         state.towerSprites[i] = towerSprite;
+
+        if (tower.stats.empty) {
+            state.particles.push(new Particle(towerSprite.x, towerSprite.y, ParticleStats.cloud, state.particleTextures, state.entitySpriteContainer));
+        } else {
+            state.particles.push(new Particle(towerSprite.x, towerSprite.y, ParticleStats.dust, state.particleTextures, state.entitySpriteContainer));
+        }
     }
 
     getTower = (x: number, y: number): Tower => {

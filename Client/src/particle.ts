@@ -7,8 +7,6 @@ export class ParticleStats {
     public readonly frameCount: number;
     public readonly textureIndex: number;
 
-    // TODO: Currently all sprite sheets use textureIndex in a way
-    // that only supports the first row of sprites being accessed.
     constructor(textureIndex: number, frameCount: number) {
         this.textureIndex = textureIndex;
         this.frameCount = frameCount;
@@ -16,6 +14,7 @@ export class ParticleStats {
 
     public static readonly cloud = new ParticleStats(0, 7);
     public static readonly smoke = new ParticleStats(7, 4);
+    public static readonly dust = new ParticleStats(14, 4);
 }
 
 export class Particle {
@@ -29,6 +28,7 @@ export class Particle {
         this.sprite = new Sprite(textures[stats.textureIndex]);
         this.sprite.x = x;
         this.sprite.y = y;
+        this.sprite.zIndex = 1;
         this.stats = stats;
         this.container.addChild(this.sprite);
         this.time = 0;

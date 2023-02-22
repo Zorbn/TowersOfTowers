@@ -30,13 +30,15 @@ const onResize = (view: Container, scaledView: Container) => {
     view.y = window.innerHeight / 2 - (VIEW_HEIGHT * scale) / 2;
 }
 
-const loadTextureSheet = (path: string, tileSize: number, tileCount: number): Texture[] => {
-    const sheet = Texture.from(path);
+const loadTextureSheet = async (path: string, tileSize: number, tileCount: number): Promise<Texture[]> => {
+    const sheet = await Texture.fromURL(path);
+    const paddedTileSize = tileSize + TEXTURE_SHEET_PADDING * 2;
+    const sheetWidth = Math.floor(sheet.baseTexture.width / paddedTileSize);
     sheet.baseTexture.scaleMode = SCALE_MODES.NEAREST;
     let textures = new Array(tileCount);
     for (let i = 0; i < tileCount; i++) {
-        const x = TEXTURE_SHEET_PADDING + (tileSize + TEXTURE_SHEET_PADDING * 2) * i;
-        const y = TEXTURE_SHEET_PADDING;
+        const x = TEXTURE_SHEET_PADDING + paddedTileSize * (i % sheetWidth);
+        const y = TEXTURE_SHEET_PADDING + paddedTileSize * Math.floor(i / sheetWidth);
         textures[i] = new Texture(sheet.baseTexture, new Rectangle(x, y, tileSize, tileSize));
     }
 
@@ -176,12 +178,13 @@ const main = async () => {
     scaledView.sortableChildren = true;
     app.stage.addChild(view);
 
-    const tileTextures = loadTextureSheet("tileSheet.png", TILE_SIZE, 4);
-    const towerTextures = loadTextureSheet("towerSheet.png", TILE_SIZE, 3);
-    const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 9);
-    const enemyTextures = loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
-    const projectileTextures = loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
-    const particleTextures = loadTextureSheet("particleSheet.png", TILE_SIZE, 11);
+    // TODO: It would be nice to not have to increment these with every new sprite.
+    const tileTextures = await loadTextureSheet("tileSheet.png", TILE_SIZE, 4);
+    const towerTextures = await loadTextureSheet("towerSheet.png", TILE_SIZE, 3);
+    const uiTextures = await loadTextureSheet("uiSheet.png", TILE_SIZE, 9);
+    const enemyTextures = await loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
+    const projectileTextures = await loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
+    const particleTextures = await loadTextureSheet("particleSheet.png", TILE_SIZE, 18);
 
     const background = new Container();
     background.zIndex = -1;
