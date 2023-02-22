@@ -99,7 +99,7 @@ const updateEnemies = (state: State, deltaTime: number) => {
 
     if (enemyInPlayerBase) {
         for (let enemy of state.enemies) {
-            enemy.destroy();
+            enemy.destroy(state);
         }
 
         state.enemies.splice(0, state.enemies.length);
@@ -130,12 +130,21 @@ const update = async (state: State, deltaTime: number) => {
 
     updateEnemies(state, deltaTime);
 
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        const particle = state.particles[i];
+
+        if (particle.update(state, deltaTime)) {
+            particle.destroy();
+            state.particles.splice(i, 1);
+        }
+    }
+
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
 
         // Remove the projectile if it had a collision.
         if (projectile.update(TILE_SIZE, state, deltaTime)) {
-            projectile.destroy();
+            projectile.destroy(state);
             state.projectiles.splice(i, 1);
         }
     }
@@ -172,6 +181,7 @@ const main = async () => {
     const uiTextures = loadTextureSheet("uiSheet.png", TILE_SIZE, 9);
     const enemyTextures = loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
     const projectileTextures = loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
+    const particleTextures = loadTextureSheet("particleSheet.png", TILE_SIZE, 11);
 
     const background = new Container();
     background.zIndex = -1;
@@ -214,15 +224,17 @@ const main = async () => {
         }, scaledView),
         projectileTextures,
         towerTextures,
+        tileTextures,
+        enemyTextures,
+        particleTextures,
         towerSprites: new Array(MAP_WIDTH * MAP_HEIGHT),
         entitySpriteContainer: new Container(),
-        enemyTextures,
         enemies: [],
         enemySpawner: new EnemySpawner(),
         map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE),
         projectiles: [],
         tileSprites: [],
-        tileTextures,
+        particles: [],
     };
 
     state.input.addListeners();

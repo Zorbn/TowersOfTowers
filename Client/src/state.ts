@@ -2,6 +2,7 @@ import { Container, Sprite, Texture } from "pixi.js";
 import { Enemy } from "./enemy";
 import { EnemySpawner } from "./enemySpawner";
 import { Input } from "./input";
+import { Particle } from "./particle";
 import { Projectile } from "./projectile";
 import { TowerMap } from "./towerMap";
 import { Ui } from "./ui";
@@ -9,17 +10,19 @@ import { Ui } from "./ui";
 export type State = {
     view: Container,
     scaledView: Container,
+    entitySpriteContainer: Container,
+    towerTextures: Texture[],
+    enemyTextures: Texture[],
+    projectileTextures: Texture[],
+    particleTextures: Texture[],
+    tileTextures: Texture[],
     input: Input,
     ui: Ui,
-    towerTextures: Texture[],
     towerSprites: Sprite[],
-    entitySpriteContainer: Container,
+    tileSprites: Sprite[],
     enemies: Enemy[],
-    enemyTextures: Texture[],
     enemySpawner: EnemySpawner,
     map: TowerMap,
     projectiles: Projectile[],
-    projectileTextures: Texture[],
-    tileSprites: Sprite[],
-    tileTextures: Texture[],
+    particles: Particle[],
 }

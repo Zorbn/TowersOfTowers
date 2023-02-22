@@ -1,4 +1,5 @@
 import { Container, Sprite, Texture } from "pixi.js";
+import { Particle, ParticleStats } from "./particle";
 import { State } from "./state";
 
 export class ProjectileStats {
@@ -56,7 +57,7 @@ export class Projectile {
             }
 
             // Remove the enemy if it died.
-            if (enemy.takeDamage(this.stats.damage)) {
+            if (enemy.takeDamage(this.stats.damage, state)) {
                 state.ui.bank.addMoney(enemy.stats.value);
                 state.enemies.splice(i, 1);
             }
@@ -67,7 +68,8 @@ export class Projectile {
         return false;
     }
 
-    destroy = () => {
+    destroy = (state: State) => {
+        state.particles.push(new Particle(this.x, this.y, ParticleStats.smoke, state.particleTextures, this.container));
         this.container.removeChild(this.sprite);
     }
 }

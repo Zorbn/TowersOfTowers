@@ -2,6 +2,7 @@ import { Container, Sprite, Texture } from "pixi.js";
 import { State } from "./state";
 import { Tower } from "./tower";
 import enemyStatsData from "./enemies.json";
+import { Particle, ParticleStats } from "./particle";
 
 export class EnemyStats {
     public readonly name: string;
@@ -91,18 +92,19 @@ export class Enemy {
     }
 
     // Returns true if the enemy has died for taking damage.
-    takeDamage = (damage: number): boolean => {
+    takeDamage = (damage: number, state: State): boolean => {
         this.health -= damage;
 
         if (this.health <= 0) {
-            this.destroy();
+            this.destroy(state);
             return true;
         }
 
         return false;
     }
 
-    destroy = () => {
+    destroy = (state: State) => {
+        state.particles.push(new Particle(this.x, this.y, ParticleStats.cloud, state.particleTextures, this.container));
         this.container.removeChild(this.sprite);
     }
 
