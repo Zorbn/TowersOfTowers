@@ -1,4 +1,5 @@
 import { Container, Sprite, Texture } from "pixi.js";
+import { IDestructable } from "./destructable";
 import { Particle, ParticleStats } from "./particle";
 import { State } from "./state";
 
@@ -14,7 +15,7 @@ export class ProjectileStats {
     }
 }
 
-export class Projectile {
+export class Projectile implements IDestructable {
     public readonly stats: ProjectileStats;
     private x: number;
     private y: number;

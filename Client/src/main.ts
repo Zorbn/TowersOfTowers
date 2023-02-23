@@ -137,7 +137,7 @@ const update = async (state: State, deltaTime: number) => {
         const particle = state.particles[i];
 
         if (particle.update(state, deltaTime)) {
-            particle.destroy();
+            particle.destroy(state);
             state.particles.splice(i, 1);
         }
     }

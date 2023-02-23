@@ -1,4 +1,5 @@
 import { Container, Sprite, Texture } from "pixi.js";
+import { IDestructable } from "./destructable";
 import { State } from "./state";
 
 const PARTICLE_FPS = 10;
@@ -17,7 +18,7 @@ export class ParticleStats {
     public static readonly dust = new ParticleStats(14, 4);
 }
 
-export class Particle {
+export class Particle implements IDestructable {
     private time: number;
     private sprite: Sprite;
     private stats: ParticleStats;
@@ -47,8 +48,7 @@ export class Particle {
         return false;
     }
 
-    // TODO: IDestructable?
-    destroy = () => {
+    destroy = (_state: State) => {
         this.container.removeChild(this.sprite);
     }
 }

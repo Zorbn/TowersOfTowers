@@ -4,6 +4,7 @@ import { Tower } from "./tower";
 import enemyStatsData from "./enemies.json";
 import { Particle, ParticleStats } from "./particle";
 import { IDamageable } from "./damageable";
+import { IDestructable } from "./destructable";
 
 export class EnemyStats {
     public readonly name: string;
@@ -45,7 +46,7 @@ export class EnemyStats {
     public static readonly loadedEnemyStats = this.loadEnemyStats();
 }
 
-export class Enemy implements IDamageable {
+export class Enemy implements IDamageable, IDestructable {
     public readonly stats: EnemyStats;
     private x: number;
     private y: number;
@@ -81,7 +82,7 @@ export class Enemy implements IDamageable {
 
             this.attackTimer = 0;
 
-            if (tower.takeDamage(this.stats.damage)) {
+            if (tower.takeDamage(this.stats.damage, state)) {
                 state.map.setTower(state, tileX, tileY, Tower.empty);
             }
 
