@@ -3,6 +3,7 @@ import { State } from "./state";
 import { Tower } from "./tower";
 import enemyStatsData from "./enemies.json";
 import { Particle, ParticleStats } from "./particle";
+import { IDamageable } from "./damageable";
 
 export class EnemyStats {
     public readonly name: string;
@@ -44,7 +45,7 @@ export class EnemyStats {
     public static readonly loadedEnemyStats = this.loadEnemyStats();
 }
 
-export class Enemy {
+export class Enemy implements IDamageable {
     public readonly stats: EnemyStats;
     private x: number;
     private y: number;
@@ -91,7 +92,6 @@ export class Enemy {
         this.sprite.x = this.x;
     }
 
-    // Returns true if the enemy has died for taking damage.
     takeDamage = (damage: number, state: State): boolean => {
         this.health -= damage;
 

@@ -1,3 +1,4 @@
+import { IDamageable } from "./damageable";
 import { Projectile, ProjectileStats } from "./projectile";
 import { State } from "./state";
 import towerStatsData from "./towers.json";
@@ -43,7 +44,7 @@ export class TowerStats {
     public static readonly loadedTowerStats = this.loadTowerStats();
 }
 
-export class Tower {
+export class Tower implements IDamageable {
     public readonly stats: TowerStats;
     private attackTimer: number;
     private health: number;
@@ -72,9 +73,7 @@ export class Tower {
             state.projectileTextures, state.entitySpriteContainer));
     }
 
-    // TODO: Make IDamageable interface?
-    // Returns true if the tower has died for taking damage.
-    takeDamage = (damage: number): boolean => {
+    takeDamage = (damage: number, _state: State): boolean => {
         this.health -= damage;
 
         if (this.health <= 0) {
