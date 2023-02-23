@@ -16,7 +16,6 @@ const BASE_WIDTH = 3;
 const TEXTURE_SHEET_PADDING = 1;
 
 // TODO:
-// Particles, could be used for damage, spawning, destroying
 // Animated enemies?
 // Networking?
 
@@ -206,6 +205,12 @@ const main = async () => {
     enemyBaseSprite.x = MAP_WIDTH * TILE_SIZE;
     enemyBaseSprite.y = MAP_HEIGHT * TILE_SIZE;
     background.addChild(enemyBaseSprite);
+
+    const backdropTexture = Texture.from("backdrop.png");
+    backdropTexture.baseTexture.scaleMode = SCALE_MODES.NEAREST;
+    const backdropSprite = new Sprite(backdropTexture);
+    backdropSprite.zIndex = -2;
+    scaledView.addChild(backdropSprite);
 
     let state: State = {
         view,
