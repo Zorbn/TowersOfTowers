@@ -1,6 +1,5 @@
 import { Enemy, EnemyStats } from "./enemy";
 import enemyStatsData from "./enemies.json";
-import { enemyTextures } from "./textureSheet";
 import { TowerMap } from "./towerMap";
 import { Container } from "pixi.js";
 
@@ -97,7 +96,7 @@ export class EnemySpawner {
         const x = (towerMap.width + Math.random() * ENEMY_SPAWN_WIDTH) * towerMap.tileSize;
         const lane = Math.floor(Math.random() * towerMap.height);
 
-        enemies.push(new Enemy(stats, x, lane, towerMap.tileSize, enemyTextures, container));
+        enemies.push(new Enemy(stats, x, lane, towerMap.tileSize, container));
     }
 
     update = (enemies: Enemy[], towerMap: TowerMap, container: Container, deltaTime: number) => {

@@ -2,6 +2,7 @@ import { Container } from "pixi.js";
 import { Enemy } from "./enemy";
 import { EnemySpawner } from "./enemySpawner";
 import { Input } from "./input";
+import { Network } from "./network";
 import { Particle } from "./particle";
 import { ParticleSpawner } from "./particleSpawner";
 import { Projectile } from "./projectile";
@@ -14,6 +15,7 @@ export type World = {
     entitySpriteContainer: Container,
     input: Input,
     ui: Ui,
+    network: Network,
     enemies: Enemy[],
     enemySpawner: EnemySpawner,
     towerMap: TowerMap,

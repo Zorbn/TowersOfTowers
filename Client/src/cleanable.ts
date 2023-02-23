@@ -1,4 +1,4 @@
 export interface ICleanable {
-    isDirty(): boolean;
-    markClean(): void;
+    isDirty: () => boolean;
+    markClean: () => void;
 }

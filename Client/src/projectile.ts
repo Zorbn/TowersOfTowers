@@ -1,8 +1,9 @@
-import { Container, Sprite, Texture } from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 import { IDestructable } from "./destructable";
 import { Enemy } from "./enemy";
 import { ParticleStats } from "./particle";
 import { ParticleSpawner } from "./particleSpawner";
+import { projectileTextures } from "./textureSheet";
 import { TowerMap } from "./towerMap";
 import { Ui } from "./ui";
 
@@ -10,11 +11,13 @@ export class ProjectileStats {
     public readonly textureIndex: number;
     public readonly damage: number;
     public readonly speed: number;
+    public readonly towerLoadIndex: number;
 
-    constructor(textureIndex: number, damage: number, speed: number) {
+    constructor(textureIndex: number, damage: number, speed: number, towerLoadIndex: number) {
         this.textureIndex = textureIndex;
         this.damage = damage;
         this.speed = speed;
+        this.towerLoadIndex = towerLoadIndex;
     }
 }
 
@@ -25,11 +28,11 @@ export class Projectile implements IDestructable {
     private sprite: Sprite;
     private container: Container;
 
-    constructor(stats: ProjectileStats, x: number, y: number, textures: Texture[], container: Container) {
+    constructor(stats: ProjectileStats, x: number, y: number, container: Container) {
         this.stats = stats;
         this.x = x;
         this.y = y;
-        this.sprite = new Sprite(textures[stats.textureIndex]);
+        this.sprite = new Sprite(projectileTextures[stats.textureIndex]);
         this.sprite.x = this.x;
         this.sprite.y = this.y;
         container.addChild(this.sprite);
@@ -75,5 +78,13 @@ export class Projectile implements IDestructable {
     destroy = (particleSpawner: ParticleSpawner) => {
         particleSpawner.queue(this.x, this.y, ParticleStats.smoke);
         this.container.removeChild(this.sprite);
+    }
+
+    getX = () => {
+        return this.x;
+    }
+
+    getY = () => {
+        return this.y;
     }
 }

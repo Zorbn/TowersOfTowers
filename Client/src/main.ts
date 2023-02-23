@@ -7,6 +7,7 @@ import { TowerMap } from "./towerMap";
 import { tileTextures } from "./textureSheet";
 import { TileMap } from "./tileMap";
 import { ParticleSpawner } from "./particleSpawner";
+import { Network } from "./network";
 
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;
@@ -19,6 +20,25 @@ const BASE_WIDTH = 3;
 // TODO:
 // Animated enemies?
 // Networking?
+
+/*
+ * Networking:
+ * Add UI to enter room code and join, or leave if you are already in one,
+ * Three states: LOCAL, HOST, CLIENT
+ * First player the join the room is the HOST
+ * Current update runs for LOCAL & HOST
+ * Update without any spawning/destroying runs for CLIENT
+ * Add functions to send WS info for spawning/destroying and enemy start/stop to those functions
+ * Networking functions do nothing if run on a LOCAL player
+ * Simple server that serve's the client and uses WS to relay messages to players in the same room,
+ * When a player disconnects swap hosts if they are the host (if possible) and remove player's buildings.
+ */
+
+/*
+ * Sync current state on join
+ * Sync new updates
+ * Sync disconnecting
+ */
 
 const onResize = (view: Container) => {
     let scale = Math.min(window.innerWidth / VIEW_WIDTH, window.innerHeight / VIEW_HEIGHT);
@@ -55,14 +75,22 @@ const updateEnemies = (world: World, deltaTime: number) => {
     }
 }
 
-const update = async (world: World, deltaTime: number) => {
+const updateCommon = async (world: World) => {
+    world.ui.update(world.input);
     world.ui.draw(world.enemySpawner, TILE_SIZE);
 
     // TODO: Remove this.
     if (world.input.wasKeyPressed("KeyM")) {
         world.ui.bank.addMoney(25);
     }
+}
 
+const updatePostCommon = async (world: World) => {
+    world.particleSpawner.update(world.particles, world.entitySpriteContainer);
+    world.input.update();
+}
+
+const updateHost = async (world: World, deltaTime: number) => {
     if (world.input.wasMouseButtonPressed(0)) {
         const mouseX = world.input.getMouseX();
         const mouseY = world.input.getMouseY();
@@ -71,7 +99,7 @@ const update = async (world: World, deltaTime: number) => {
         const mouseTileX = (mouseWorldX - world.entitySpriteContainer.x) / TILE_SIZE;
         const mouseTileY = (mouseWorldY - world.entitySpriteContainer.y) / TILE_SIZE;
 
-        world.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, world.towerMap, world.enemySpawner);
+        world.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, world.towerMap, world.enemySpawner, world.network);
 
         world.towerMap.tryPlaceTower(mouseTileX, mouseTileY, world.tileMap, world.ui, world.particleSpawner);
     }
@@ -98,8 +126,21 @@ const update = async (world: World, deltaTime: number) => {
     }
 
     world.towerMap.update(world.projectiles, world.entitySpriteContainer, deltaTime);
-    world.input.update();
-    world.particleSpawner.update(world.particles, world.entitySpriteContainer);
+}
+
+// const updateClient = async (_world: World, _deltaTime: number) => {
+// }
+
+const update = async (world: World, deltaTime: number) => {
+    updateCommon(world);
+
+    if (!world.network.isConnected() || world.network.isHost()) {
+        updateHost(world, deltaTime);
+    } else {
+        // updateClient(world, deltaTime);
+    }
+
+    updatePostCommon(world);
 }
 
 const main = async () => {
@@ -155,6 +196,7 @@ const main = async () => {
         view,
         input: new Input(),
         ui: new Ui(TILE_SIZE, 9, 3, VIEW_WIDTH, VIEW_HEIGHT, view),
+        network: new Network(),
         entitySpriteContainer,
         enemies: [],
         enemySpawner: new EnemySpawner(),
@@ -165,6 +207,7 @@ const main = async () => {
         particleSpawner: new ParticleSpawner(),
     };
 
+    world.network.addListeners(world.ui, world.enemySpawner, world.enemies, world.towerMap, world.projectiles, world.particleSpawner, world.entitySpriteContainer);
     world.input.addListeners();
 
     world.entitySpriteContainer.x = background.x;

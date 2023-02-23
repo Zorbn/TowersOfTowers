@@ -1,5 +1,5 @@
 import { ParticleSpawner } from "./particleSpawner";
 
 export interface IDestructable {
-    destroy(particleSpawner: ParticleSpawner): void;
+    destroy: (particleSpawner: ParticleSpawner) => void;
 }

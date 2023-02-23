@@ -1,6 +1,7 @@
 import { Container } from "pixi.js";
 
 export class Input {
+    public readonly keyStream: Set<string>;
     private pressedKeys: Set<string>;
     private pressedMouseButtons: Set<number>;
     private keyWasPressed: Set<string>;
@@ -14,6 +15,7 @@ export class Input {
     private mouseMoveListener?: (ev: MouseEvent) => any;
 
     constructor() {
+        this.keyStream = new Set();
         this.pressedKeys = new Set();
         this.pressedMouseButtons = new Set();
         this.keyWasPressed = new Set();
@@ -56,6 +58,7 @@ export class Input {
 
     update = () => {
         this.keyWasPressed.clear();
+        this.keyStream.clear();
         this.mouseButtonWasPressed.clear();
     }
 
@@ -63,6 +66,7 @@ export class Input {
         this.keyDownListener = (event: KeyboardEvent) => {
             if (!this.pressedKeys.has(event.code)) {
                 this.keyWasPressed.add(event.code);
+                this.keyStream.add(event.key);
             }
 
             this.pressedKeys.add(event.code);

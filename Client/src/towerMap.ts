@@ -1,6 +1,5 @@
 import { Container, Sprite } from "pixi.js";
 import { Tower, TowerStats } from "./tower";
-import { World } from "./world";
 import { ParticleStats } from "./particle";
 import { towerTextures } from "./textureSheet";
 import { TileMap } from "./tileMap";
@@ -93,10 +92,14 @@ export class TowerMap {
     }
 
     tryPlaceTower = (mouseTileX: number, mouseTileY: number, tileMap: TileMap, ui: Ui, particleSpawner: ParticleSpawner) => {
-        const oldTowerStats = this.getTowerStats(mouseTileX, mouseTileY);
+        const oldTower = this.getTower(mouseTileX, mouseTileY);
 
-        if (!oldTowerStats.empty) {
-            ui.inventory.stopUsingTower(oldTowerStats, 1);
+        if (!oldTower.locallyOwned) {
+            return;
+        }
+
+        if (!oldTower.stats.empty) {
+            ui.inventory.stopUsingTower(oldTower.stats, 1);
             this.setTower(mouseTileX, mouseTileY, Tower.empty, particleSpawner);
             tileMap.updateTileStyle(mouseTileX, mouseTileY, true);
             return;

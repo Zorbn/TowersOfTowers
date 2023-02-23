@@ -26,7 +26,7 @@ export const enemyTextures = await loadTextureSheet("enemySheet.png", TEXTURE_TI
 export const projectileTextures = await loadTextureSheet("projectileSheet.png", TEXTURE_TILE_SIZE, 4);
 export const particleTextures = await loadTextureSheet("particleSheet.png", TEXTURE_TILE_SIZE, 18);
 
-export const uiTextures = await loadTextureSheet("uiSheet.png", TEXTURE_TILE_SIZE, 9);
+export const uiTextures = await loadTextureSheet("uiSheet.png", TEXTURE_TILE_SIZE, 14);
 export const namedUiTextures = {
     slotBackground: uiTextures[0],
     slotSelected: uiTextures[1],
@@ -39,4 +39,9 @@ export const namedUiTextures = {
     downloadButton: uiTextures[6],
     uploadButton: uiTextures[7],
     saveButton: uiTextures[8],
+    networkButton: uiTextures[9],
+    connectButton: uiTextures[10],
+    inputFieldLeft: uiTextures[11],
+    inputFieldMiddle: uiTextures[12],
+    inputFieldRight: uiTextures[13],
 };

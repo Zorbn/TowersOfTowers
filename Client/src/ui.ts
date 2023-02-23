@@ -1,6 +1,8 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
 import { ICleanable } from "./cleanable";
 import { EnemySpawner } from "./enemySpawner";
+import { Input } from "./input";
+import { Network } from "./network";
 import { namedUiTextures, towerTextures } from "./textureSheet";
 import { TowerStats } from "./tower";
 import { TowerMap } from "./towerMap";
@@ -8,8 +10,9 @@ import towerStatsData from "./towers.json";
 
 const STARTING_MONEY = 100;
 const SAVE_IDENTIFIER = "saveData";
-const ITEM_ACTIVE_COLOR = 0xffffff;
-const ITEM_INACTIVE_COLOR = 0x888888;
+const ACTIVE_COLOR = 0xffffff;
+const INACTIVE_COLOR = 0x888888;
+const MAX_ROOM_CODE_LENGTH = 6;
 
 enum TabType {
     INVENTORY,
@@ -18,7 +21,7 @@ enum TabType {
 
 interface Item {
     towerStats: TowerStats;
-    isActive(money: number): boolean;
+    isActive: (money: number) => boolean;
 }
 
 class InventoryItem implements Item {
@@ -64,9 +67,9 @@ class ShopItem implements Item {
 }
 
 interface ITab {
-    draw(towerTextures: Texture[], slotItemSprites: Sprite[], money: number): void;
-    selectSlot(i: number): void;
-    getSelectedSlot(): number;
+    draw: (towerTextures: Texture[], slotItemSprites: Sprite[], money: number) => void;
+    selectSlot: (i: number) => void;
+    getSelectedSlot: () => number;
 }
 
 class Tab<T extends Item> {
@@ -92,7 +95,7 @@ class Tab<T extends Item> {
             let slotItem = this.slots[i];
 
             slotItemSprites[i].texture = towerTextures[slotItem.towerStats.textureIndex];
-            slotItemSprites[i].tint = slotItem.isActive(money) ? ITEM_ACTIVE_COLOR : ITEM_INACTIVE_COLOR;
+            slotItemSprites[i].tint = slotItem.isActive(money) ? ACTIVE_COLOR : INACTIVE_COLOR;
         }
     }
 
@@ -248,6 +251,7 @@ class Shop {
     constructor(width: number, height: number, tileSize: number, container: Container) {
         this.tab = new Tab(width, height, new ShopItem(TowerStats.empty, 0));
 
+        // Skip the empty tower
         for (let i = 0; i < TowerStats.loadedTowerStats.length; i++) {
             this.tab.addItem(new ShopItem(
                 TowerStats.loadedTowerStats[i],
@@ -365,6 +369,19 @@ export class Ui {
 
     private saveInput: HTMLInputElement;
 
+    private networkButtonSprite: Sprite;
+    private networkButtonSelectedSprite: Sprite;
+    private networkPanelContainer: Container;
+    private connectButtonSprite: Sprite;
+    private roomCodeInputSpriteLeft: Sprite;
+    private roomCodeInputSpriteMiddle: Sprite;
+    private roomCodeInputSpriteRight: Sprite;
+    private isRoomCodeInputFocused: boolean;
+    private roomCodeText: BitmapText;
+    private roomCode: string;
+
+    // Todo: Can these be constructed in multiple parts,
+    // ie: tabbed ui, top right control panel, etc.
     constructor(tileSize: number, slotsWidth: number, slotsHeight: number, viewWidth: number, _viewHeight: number, container: Container) {
         const slotCount = slotsWidth * slotsHeight;
         this.slotBackgroundSprites = new Array(slotCount);
@@ -426,8 +443,18 @@ export class Ui {
         this.selectedStartButtonSprite.zIndex = 1;
         container.addChild(this.selectedStartButtonSprite);
 
+        this.networkButtonSprite = new Sprite(namedUiTextures.networkButton);
+        this.networkButtonSprite.x = viewWidth - tileSize;
+        container.addChild(this.networkButtonSprite);
+
+        this.networkButtonSelectedSprite = new Sprite(namedUiTextures.buttonSelected);
+        this.networkButtonSelectedSprite.x = this.networkButtonSprite.x;
+        this.networkButtonSelectedSprite.zIndex = 1;
+        this.networkButtonSelectedSprite.visible = false;
+        container.addChild(this.networkButtonSelectedSprite);
+
         this.saveButtonSprite = new Sprite(namedUiTextures.saveButton);
-        this.saveButtonSprite.x = viewWidth - tileSize;
+        this.saveButtonSprite.x = this.networkButtonSprite.x - tileSize;
         container.addChild(this.saveButtonSprite);
 
         this.selectedSaveButtonSprite = new Sprite(namedUiTextures.buttonSelected);
@@ -452,6 +479,35 @@ export class Ui {
         this.downloadButtonSprite = new Sprite(namedUiTextures.downloadButton);
         this.downloadButtonSprite.x = this.uploadButtonSprite.x - tileSize;
         container.addChild(this.downloadButtonSprite);
+
+        this.networkPanelContainer = new Container();
+        this.networkPanelContainer.x = this.networkButtonSprite.x;
+        this.networkPanelContainer.y = this.networkButtonSprite.y + tileSize;
+        this.networkPanelContainer.visible = false;
+        container.addChild(this.networkPanelContainer);
+
+        this.connectButtonSprite = new Sprite(namedUiTextures.connectButton);
+        this.networkPanelContainer.addChild(this.connectButtonSprite);
+
+        this.roomCodeInputSpriteLeft = new Sprite(namedUiTextures.inputFieldLeft);
+        this.roomCodeInputSpriteLeft.x = -tileSize * 3;
+        this.networkPanelContainer.addChild(this.roomCodeInputSpriteLeft);
+        this.roomCodeInputSpriteMiddle = new Sprite(namedUiTextures.inputFieldMiddle);
+        this.roomCodeInputSpriteMiddle.x = -tileSize * 2;
+        this.networkPanelContainer.addChild(this.roomCodeInputSpriteMiddle);
+        this.roomCodeInputSpriteRight = new Sprite(namedUiTextures.inputFieldRight);
+        this.roomCodeInputSpriteRight.x = -tileSize;
+        this.networkPanelContainer.addChild(this.roomCodeInputSpriteRight);
+        this.isRoomCodeInputFocused = false;
+
+        this.roomCode = "";
+        this.roomCodeText = new BitmapText("", { fontName: "DefaultFont" });
+        this.roomCodeText.scale.x = 0.15;
+        this.roomCodeText.scale.y = 0.15;
+        this.roomCodeText.x = this.roomCodeInputSpriteLeft.x + tileSize * 0.3;
+        this.roomCodeText.y = tileSize * 0.15;
+        this.roomCodeText.zIndex = 1;
+        this.networkPanelContainer.addChild(this.roomCodeText);
 
         this.moneyText = new BitmapText("", { fontName: "DefaultFont" });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
@@ -494,6 +550,25 @@ export class Ui {
         return tab;
     }
 
+    // TODO: Network panel should be it's own class like shop/inv.
+    drawNetworkPanel = () => {
+        if (!this.networkPanelContainer.visible) {
+            return;
+        }
+
+        if (this.roomCode.length == 0) {
+            this.roomCodeText.text = "Room Code";
+            this.roomCodeText.tint = INACTIVE_COLOR;
+        } else {
+            this.roomCodeText.text = this.roomCode;
+            this.roomCodeText.tint = ACTIVE_COLOR;
+        }
+
+        if (this.isRoomCodeInputFocused) {
+            this.roomCodeText.text += "|";
+        }
+    }
+
     draw = (enemySpawner: EnemySpawner, tileSize: number) => {
         this.moneyText.text = `$${this.bank.getMoney()}`;
 
@@ -525,6 +600,7 @@ export class Ui {
 
         this.shop.draw(this.selectedTab);
         this.inventory.draw(this.selectedTab);
+        this.drawNetworkPanel();
     }
 
     interactWithBuyButton = (mouseX: number, mouseY: number) => {
@@ -546,7 +622,11 @@ export class Ui {
         this.inventory.addTower(selectedItem.towerStats, 1);
     }
 
-    interactWithStartButton = (mouseX: number, mouseY: number, enemySpawner: EnemySpawner) => {
+    start = (enemySpawner: EnemySpawner) => {
+        enemySpawner.start();
+    }
+
+    interactWithStartButton = (mouseX: number, mouseY: number, enemySpawner: EnemySpawner, network: Network) => {
         if (enemySpawner.isActive()) {
             return;
         }
@@ -556,7 +636,8 @@ export class Ui {
             return;
         }
 
-        enemySpawner.start();
+        this.start(enemySpawner);
+        network.syncStart();
     }
 
     interactWithSaveButton = (mouseX: number, mouseY: number) => {
@@ -597,7 +678,94 @@ export class Ui {
         this.saveInput.click();
     }
 
-    interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, towerMap: TowerMap, enemySpawner: EnemySpawner) => {
+    enableNetworkPanel = (enabled: boolean) => {
+        this.networkPanelContainer.visible = enabled;
+        this.networkButtonSelectedSprite.visible = enabled;
+    }
+
+    // TODO: Make network button show a disconnect icon if already connected.
+    interactWithNetworkButton = (network: Network, mouseX: number, mouseY: number) => {
+        if (!Ui.isInSpriteBounds(this.networkButtonSprite, mouseX, mouseY)) {
+            return;
+        }
+
+        if (network.isConnected()) {
+            network.disconnect();
+            console.log("Disconnecting");
+        } else {
+            this.enableNetworkPanel(!this.networkPanelContainer.visible);
+        }
+    }
+
+    interactWithRoomCodeInput = (mouseX: number, mouseY: number) => {
+        this.isRoomCodeInputFocused =
+            Ui.isInSpriteBounds(this.roomCodeInputSpriteLeft, mouseX, mouseY) ||
+            Ui.isInSpriteBounds(this.roomCodeInputSpriteMiddle, mouseX, mouseY) ||
+            Ui.isInSpriteBounds(this.roomCodeInputSpriteRight, mouseX, mouseY);
+    }
+
+    interactWithNetworkPanel = (network: Network, mouseX: number, mouseY: number) => {
+        this.interactWithRoomCodeInput(mouseX, mouseY);
+
+        if (!Ui.isInSpriteBounds(this.connectButtonSprite, mouseX, mouseY) || this.roomCode.trim().length == 0) {
+            return;
+        }
+
+        network.connect(this.roomCode);
+        this.enableNetworkPanel(false);
+
+    }
+
+    isAlphaNumeric = (char: string) => {
+        if (char.length != 1) {
+            return false;
+        }
+
+        const charCode = char.charCodeAt(0);
+        return (charCode > 47 && charCode < 58) || // 0-9
+            (charCode > 64 && charCode < 91) || // A-Z
+            (charCode > 96 && charCode < 123); // a-z
+    }
+
+    updateRoomCodeInput = (input: Input) => {
+        for (let key of input.keyStream) {
+            if (key == "Backspace") {
+                this.roomCode = this.roomCode.substring(0, this.roomCode.length - 1);
+                continue;
+            }
+
+            if (key == "Escape") {
+                this.roomCode = "";
+            }
+
+            if (!this.isAlphaNumeric(key)) {
+                continue;
+            }
+
+            if (this.roomCode.length >= MAX_ROOM_CODE_LENGTH) {
+                continue;
+            }
+
+            this.roomCode += key;
+        }
+    }
+
+    updateNetworkPanel = (input: Input) => {
+        if (!this.networkPanelContainer.visible) {
+            this.isRoomCodeInputFocused = false;
+            return;
+        }
+
+        if (this.isRoomCodeInputFocused) {
+            this.updateRoomCodeInput(input);
+        }
+    }
+
+    update = (input: Input) => {
+        this.updateNetworkPanel(input);
+    }
+
+    interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, towerMap: TowerMap, enemySpawner: EnemySpawner, network: Network) => {
         const mouseTileX = mouseWorldX / towerMap.tileSize;
         const mouseTileY = mouseWorldY / towerMap.tileSize;
 
@@ -605,10 +773,12 @@ export class Ui {
         this.selectTab(mouseTileX, mouseTileY);
 
         this.interactWithBuyButton(mouseX, mouseY);
-        this.interactWithStartButton(mouseX, mouseY, enemySpawner);
+        this.interactWithStartButton(mouseX, mouseY, enemySpawner, network);
         this.interactWithSaveButton(mouseX, mouseY);
         this.interactWithDownloadButton(mouseX, mouseY);
         this.interactWithUploadButton(mouseX, mouseY);
+        this.interactWithNetworkButton(network, mouseX, mouseY);
+        this.interactWithNetworkPanel(network, mouseX, mouseY);
     }
 
     selectSlot = (tileX: number, tileY: number) => {

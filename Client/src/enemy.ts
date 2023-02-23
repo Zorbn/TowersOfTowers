@@ -1,4 +1,4 @@
-import { Container, Sprite, Texture } from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 import { Tower } from "./tower";
 import enemyStatsData from "./enemies.json";
 import { ParticleStats } from "./particle";
@@ -6,6 +6,7 @@ import { IDamageable } from "./damageable";
 import { IDestructable } from "./destructable";
 import { TowerMap } from "./towerMap";
 import { ParticleSpawner } from "./particleSpawner";
+import { enemyTextures } from "./textureSheet";
 
 export class EnemyStats {
     public readonly name: string;
@@ -15,8 +16,9 @@ export class EnemyStats {
     public readonly speed: number;
     public readonly health: number;
     public readonly value: number;
+    public readonly loadIndex: number;
 
-    constructor(name: string, textureIndex: number, damage: number, attackTime: number, speed: number, health: number, value: number) {
+    constructor(name: string, textureIndex: number, damage: number, attackTime: number, speed: number, health: number, value: number, loadIndex: number) {
         this.name = name;
         this.textureIndex = textureIndex;
         this.damage = damage;
@@ -24,6 +26,7 @@ export class EnemyStats {
         this.speed = speed;
         this.health = health;
         this.value = value;
+        this.loadIndex = loadIndex;
     }
 
     private static loadEnemyStats = (): EnemyStats[] => {
@@ -38,6 +41,7 @@ export class EnemyStats {
                 data.speed,
                 data.health,
                 data.value,
+                enemyStats.length,
             ));
         }
 
@@ -49,20 +53,22 @@ export class EnemyStats {
 
 export class Enemy implements IDamageable, IDestructable {
     public readonly stats: EnemyStats;
+    public readonly lane: number;
+    private readonly container: Container;
     private x: number;
     private y: number;
     private sprite: Sprite;
     private health: number;
     private attackTimer: number;
-    private readonly container: Container;
 
-    constructor(stats: EnemyStats, x: number, lane: number, tileSize: number, textures: Texture[], container: Container) {
+    constructor(stats: EnemyStats, x: number, lane: number, tileSize: number, container: Container) {
         this.stats = stats;
         this.health = stats.health;
         this.attackTimer = 0;
         this.x = x;
+        this.lane = lane;
         this.y = lane * tileSize;
-        this.sprite = new Sprite(textures[stats.textureIndex]);
+        this.sprite = new Sprite(enemyTextures[stats.textureIndex]);
         this.sprite.x = this.x;
         this.sprite.y = this.y;
         container.addChild(this.sprite);
@@ -110,11 +116,11 @@ export class Enemy implements IDamageable, IDestructable {
         this.container.removeChild(this.sprite);
     }
 
-    getY = () => {
-        return this.y;
-    }
-
     getX = () => {
         return this.x;
+    }
+
+    getY = () => {
+        return this.y;
     }
 }
