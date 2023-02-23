@@ -1,4 +1,5 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
+import { ICleanable } from "./cleanable";
 import { State } from "./state";
 import { TowerStats } from "./tower";
 import towerStatsData from "./towers.json";
@@ -153,9 +154,7 @@ class Tab<T extends Item> {
     }
 }
 
-// TODO: Consider making interface for isDirty, markClean?
-// is there value to that?
-class Inventory {
+class Inventory implements ICleanable {
     public readonly tab: Tab<InventoryItem>;
     private footer: Container;
     private labelText: BitmapText;
@@ -307,7 +306,7 @@ class Shop {
     }
 }
 
-class Bank {
+class Bank implements ICleanable {
     private money: number;
     private dirty: boolean;
 
