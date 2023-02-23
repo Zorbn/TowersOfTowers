@@ -1,24 +1,35 @@
-import { Sprite } from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 import { Tower, TowerStats } from "./tower";
 import { State } from "./state";
 import { Particle, ParticleStats } from "./particle";
 
 export class TowerMap {
     private towers: Tower[];
+    private towerSprites: Sprite[];
     public readonly width: number;
     public readonly height: number;
     public readonly tileSize: number;
 
-    constructor(width: number, height: number, tileSize: number) {
+    constructor(width: number, height: number, tileSize: number, container: Container) {
         this.towers = new Array(width * height);
+        this.towerSprites = new Array(this.towers.length);
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = x + y * width;
+                this.towerSprites[i] = new Sprite();
+                this.towerSprites[i].x = x * tileSize;
+                this.towerSprites[i].y = y * tileSize;
+                container.addChild(this.towerSprites[i]);
+            }
+        }
+
         this.towers.fill(Tower.empty);
         this.width = width;
         this.height = height;
         this.tileSize = tileSize;
     }
 
-    // TODO: Don't create/delete new sprites, create sprites on init then
-    // change their textures like the UI does.
     contains = (x: number, y: number): boolean => {
         x = Math.floor(x);
         y = Math.floor(y);
@@ -35,24 +46,21 @@ export class TowerMap {
         }
 
         const i = x + y * this.width;
-
-        const oldTower = this.getTowerStats(x, y);
-        if (!oldTower.empty && state.towerSprites[i] != null) {
-            state.entitySpriteContainer.removeChild(state.towerSprites[i])
-        }
-
         this.towers[i] = tower;
-        const towerSprite = new Sprite(state.towerTextures[tower.stats.textureIndex]);
-        towerSprite.x = x * this.tileSize;
-        towerSprite.y = y * this.tileSize;
-        state.entitySpriteContainer.addChild(towerSprite);
-        state.towerSprites[i] = towerSprite;
+        const towerSprite = this.towerSprites[i];
+
+        let particleStats;
 
         if (tower.stats.empty) {
-            state.particles.push(new Particle(towerSprite.x, towerSprite.y, ParticleStats.cloud, state.particleTextures, state.entitySpriteContainer));
+            towerSprite.visible = false;
+            particleStats = ParticleStats.cloud;
         } else {
-            state.particles.push(new Particle(towerSprite.x, towerSprite.y, ParticleStats.dust, state.particleTextures, state.entitySpriteContainer));
+            towerSprite.visible = true;
+            towerSprite.texture = state.towerTextures[tower.stats.textureIndex];
+            particleStats = ParticleStats.dust;
         }
+
+        state.particles.push(new Particle(towerSprite.x, towerSprite.y, particleStats, state.particleTextures, state.entitySpriteContainer));
     }
 
     getTower = (x: number, y: number): Tower => {

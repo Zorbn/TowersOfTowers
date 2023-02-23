@@ -5,6 +5,8 @@ import { State } from "./state";
 import { Ui } from "./ui";
 import { EnemySpawner } from "./enemySpawner";
 import { TowerMap } from "./towerMap";
+import towerStatsData from "./towers.json";
+import enemyStatsData from "./enemies.json";
 
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;
@@ -177,11 +179,10 @@ const main = async () => {
     scaledView.sortableChildren = true;
     app.stage.addChild(view);
 
-    // TODO: It would be nice to not have to increment these with every new sprite.
     const tileTextures = await loadTextureSheet("tileSheet.png", TILE_SIZE, 4);
-    const towerTextures = await loadTextureSheet("towerSheet.png", TILE_SIZE, 3);
+    const towerTextures = await loadTextureSheet("towerSheet.png", TILE_SIZE, towerStatsData.length);
     const uiTextures = await loadTextureSheet("uiSheet.png", TILE_SIZE, 9);
-    const enemyTextures = await loadTextureSheet("enemySheet.png", TILE_SIZE, 2);
+    const enemyTextures = await loadTextureSheet("enemySheet.png", TILE_SIZE, enemyStatsData.length);
     const projectileTextures = await loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
     const particleTextures = await loadTextureSheet("particleSheet.png", TILE_SIZE, 18);
 
@@ -212,6 +213,8 @@ const main = async () => {
     backdropSprite.zIndex = -2;
     scaledView.addChild(backdropSprite);
 
+    const entitySpriteContainer = new Container();
+
     let state: State = {
         view,
         scaledView,
@@ -235,11 +238,10 @@ const main = async () => {
         tileTextures,
         enemyTextures,
         particleTextures,
-        towerSprites: new Array(MAP_WIDTH * MAP_HEIGHT),
-        entitySpriteContainer: new Container(),
+        entitySpriteContainer,
         enemies: [],
         enemySpawner: new EnemySpawner(),
-        map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE),
+        map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, entitySpriteContainer),
         projectiles: [],
         tileSprites: [],
         particles: [],

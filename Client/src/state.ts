@@ -7,6 +7,7 @@ import { Projectile } from "./projectile";
 import { TowerMap } from "./towerMap";
 import { Ui } from "./ui";
 
+// TODO: Move as much as possible out of state and into relevant places.
 export type State = {
     view: Container,
     scaledView: Container,
@@ -18,7 +19,6 @@ export type State = {
     tileTextures: Texture[],
     input: Input,
     ui: Ui,
-    towerSprites: Sprite[],
     tileSprites: Sprite[],
     enemies: Enemy[],
     enemySpawner: EnemySpawner,
