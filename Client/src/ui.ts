@@ -1,27 +1,15 @@
 import { Texture, Sprite, Container, BitmapText } from "pixi.js";
 import { ICleanable } from "./cleanable";
-import { State } from "./state";
+import { EnemySpawner } from "./enemySpawner";
+import { namedUiTextures, towerTextures } from "./textureSheet";
 import { TowerStats } from "./tower";
+import { TowerMap } from "./towerMap";
 import towerStatsData from "./towers.json";
 
 const STARTING_MONEY = 100;
 const SAVE_IDENTIFIER = "saveData";
 const ITEM_ACTIVE_COLOR = 0xffffff;
 const ITEM_INACTIVE_COLOR = 0x888888;
-
-export type UiTextures = {
-    slotBackground: Texture,
-    slotSelected: Texture,
-    tabInventory: Texture,
-    tabShop: Texture,
-    tabSelected: Texture,
-    buyButton: Texture,
-    startButton: Texture,
-    buttonSelected: Texture,
-    saveButton: Texture,
-    downloadButton: Texture,
-    uploadButton: Texture,
-}
 
 enum TabType {
     INVENTORY,
@@ -257,7 +245,7 @@ class Shop {
     private buyButtonSprite: Sprite;
     private labelText: BitmapText;
 
-    constructor(width: number, height: number, tileSize: number, container: Container, textures: UiTextures) {
+    constructor(width: number, height: number, tileSize: number, container: Container) {
         this.tab = new Tab(width, height, new ShopItem(TowerStats.empty, 0));
 
         for (let i = 0; i < TowerStats.loadedTowerStats.length; i++) {
@@ -271,7 +259,7 @@ class Shop {
         this.footer.y = tileSize * height;
         container.addChild(this.footer);
 
-        this.buyButtonSprite = new Sprite(textures.buyButton);
+        this.buyButtonSprite = new Sprite(namedUiTextures.buyButton);
         this.buyButtonSprite.y = tileSize * 0.25;
         this.buyButtonSprite.x = tileSize * 0.25;
         this.footer.addChild(this.buyButtonSprite);
@@ -377,7 +365,7 @@ export class Ui {
 
     private saveInput: HTMLInputElement;
 
-    constructor(tileSize: number, slotsWidth: number, slotsHeight: number, viewWidth: number, _viewHeight: number, textures: UiTextures, container: Container) {
+    constructor(tileSize: number, slotsWidth: number, slotsHeight: number, viewWidth: number, _viewHeight: number, container: Container) {
         const slotCount = slotsWidth * slotsHeight;
         this.slotBackgroundSprites = new Array(slotCount);
         this.slotItemSprites = new Array(slotCount);
@@ -386,7 +374,7 @@ export class Ui {
 
         for (let y = 0; y < slotsHeight; y++) {
             for (let x = 0; x < slotsWidth; x++) {
-                const slotBackgroundSprite = new Sprite(textures.slotBackground);
+                const slotBackgroundSprite = new Sprite(namedUiTextures.slotBackground);
                 slotBackgroundSprite.x = x * tileSize;
                 slotBackgroundSprite.y = y * tileSize;
 
@@ -403,7 +391,7 @@ export class Ui {
             }
         }
 
-        this.selectedSlotSprite = new Sprite(textures.slotSelected);
+        this.selectedSlotSprite = new Sprite(namedUiTextures.slotSelected);
         this.selectedSlotSprite.zIndex = 1;
         container.addChild(this.selectedSlotSprite);
 
@@ -413,42 +401,42 @@ export class Ui {
         this.tabSprites = new Array(tabCount);
 
         const tabStartX = this.slotsWidth * tileSize;
-        this.tabSprites[0] = new Sprite(textures.tabInventory);
+        this.tabSprites[0] = new Sprite(namedUiTextures.tabInventory);
         this.tabSprites[0].x = tabStartX;
         container.addChild(this.tabSprites[0]);
-        this.tabSprites[1] = new Sprite(textures.tabShop);
+        this.tabSprites[1] = new Sprite(namedUiTextures.tabShop);
         this.tabSprites[1].x = tabStartX;
         this.tabSprites[1].y = tileSize;
         container.addChild(this.tabSprites[1]);
 
         this.selectedTab = 0;
-        this.selectedTabSprite = new Sprite(textures.tabSelected);
+        this.selectedTabSprite = new Sprite(namedUiTextures.tabSelected);
         this.selectedTabSprite.zIndex = 1;
         this.selectedTabSprite.x = tabStartX;
         container.addChild(this.selectedTabSprite);
 
-        this.startButtonSprite = new Sprite(textures.startButton);
+        this.startButtonSprite = new Sprite(namedUiTextures.startButton);
         this.startButtonSprite.x = tabStartX;
         this.startButtonSprite.y = tileSize * 2;
         container.addChild(this.startButtonSprite);
 
-        this.selectedStartButtonSprite = new Sprite(textures.buttonSelected);
+        this.selectedStartButtonSprite = new Sprite(namedUiTextures.buttonSelected);
         this.selectedStartButtonSprite.x = this.startButtonSprite.x;
         this.selectedStartButtonSprite.y = this.startButtonSprite.y;
         this.selectedStartButtonSprite.zIndex = 1;
         container.addChild(this.selectedStartButtonSprite);
 
-        this.saveButtonSprite = new Sprite(textures.saveButton);
+        this.saveButtonSprite = new Sprite(namedUiTextures.saveButton);
         this.saveButtonSprite.x = viewWidth - tileSize;
         container.addChild(this.saveButtonSprite);
 
-        this.selectedSaveButtonSprite = new Sprite(textures.buttonSelected);
+        this.selectedSaveButtonSprite = new Sprite(namedUiTextures.buttonSelected);
         this.selectedSaveButtonSprite.x = this.saveButtonSprite.x;
         this.selectedSaveButtonSprite.y = this.saveButtonSprite.y;
         this.selectedSaveButtonSprite.zIndex = 1;
         container.addChild(this.selectedSaveButtonSprite);
 
-        this.uploadButtonSprite = new Sprite(textures.uploadButton);
+        this.uploadButtonSprite = new Sprite(namedUiTextures.uploadButton);
         this.uploadButtonSprite.x = this.saveButtonSprite.x - tileSize;
         container.addChild(this.uploadButtonSprite);
 
@@ -461,7 +449,7 @@ export class Ui {
             }
         }
 
-        this.downloadButtonSprite = new Sprite(textures.downloadButton);
+        this.downloadButtonSprite = new Sprite(namedUiTextures.downloadButton);
         this.downloadButtonSprite.x = this.uploadButtonSprite.x - tileSize;
         container.addChild(this.downloadButtonSprite);
 
@@ -480,7 +468,7 @@ export class Ui {
         container.addChild(this.waveText);
 
         this.inventory = new Inventory(slotsWidth, slotsHeight, tileSize, container);
-        this.shop = new Shop(slotsWidth, slotsHeight, tileSize, container, textures);
+        this.shop = new Shop(slotsWidth, slotsHeight, tileSize, container);
         this.bank = new Bank(STARTING_MONEY);
 
         const savedData = localStorage.getItem(SAVE_IDENTIFIER);
@@ -506,12 +494,12 @@ export class Ui {
         return tab;
     }
 
-    draw = (state: State, tileSize: number) => {
+    draw = (enemySpawner: EnemySpawner, tileSize: number) => {
         this.moneyText.text = `$${this.bank.getMoney()}`;
 
-        if (state.enemySpawner.isActive()) {
+        if (enemySpawner.isActive()) {
             this.selectedStartButtonSprite.visible = false;
-            this.waveText.text = `Wave ${state.enemySpawner.getWave()}`;
+            this.waveText.text = `Wave ${enemySpawner.getWave()}`;
         } else {
             this.selectedStartButtonSprite.visible = true;
             this.waveText.text = "Get ready...";
@@ -533,7 +521,7 @@ export class Ui {
         this.selectedTabSprite.x = (this.slotsWidth + selectedTabX) * tileSize;
         this.selectedTabSprite.y = selectedTabY * tileSize;
 
-        tab.draw(state.towerTextures, this.slotItemSprites, this.bank.getMoney());
+        tab.draw(towerTextures, this.slotItemSprites, this.bank.getMoney());
 
         this.shop.draw(this.selectedTab);
         this.inventory.draw(this.selectedTab);
@@ -558,8 +546,8 @@ export class Ui {
         this.inventory.addTower(selectedItem.towerStats, 1);
     }
 
-    interactWithStartButton = (mouseX: number, mouseY: number, state: State) => {
-        if (state.enemySpawner.isActive()) {
+    interactWithStartButton = (mouseX: number, mouseY: number, enemySpawner: EnemySpawner) => {
+        if (enemySpawner.isActive()) {
             return;
         }
 
@@ -568,7 +556,7 @@ export class Ui {
             return;
         }
 
-        state.enemySpawner.start();
+        enemySpawner.start();
     }
 
     interactWithSaveButton = (mouseX: number, mouseY: number) => {
@@ -609,15 +597,15 @@ export class Ui {
         this.saveInput.click();
     }
 
-    interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, state: State) => {
-        const mouseTileX = mouseWorldX / state.map.tileSize;
-        const mouseTileY = mouseWorldY / state.map.tileSize;
+    interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, towerMap: TowerMap, enemySpawner: EnemySpawner) => {
+        const mouseTileX = mouseWorldX / towerMap.tileSize;
+        const mouseTileY = mouseWorldY / towerMap.tileSize;
 
         this.selectSlot(mouseTileX, mouseTileY);
         this.selectTab(mouseTileX, mouseTileY);
 
         this.interactWithBuyButton(mouseX, mouseY);
-        this.interactWithStartButton(mouseX, mouseY, state);
+        this.interactWithStartButton(mouseX, mouseY, enemySpawner);
         this.interactWithSaveButton(mouseX, mouseY);
         this.interactWithDownloadButton(mouseX, mouseY);
         this.interactWithUploadButton(mouseX, mouseY);

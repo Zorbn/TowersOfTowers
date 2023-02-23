@@ -1,28 +1,24 @@
-import { Container, Sprite, Texture } from "pixi.js";
+import { Container } from "pixi.js";
 import { Enemy } from "./enemy";
 import { EnemySpawner } from "./enemySpawner";
 import { Input } from "./input";
 import { Particle } from "./particle";
+import { ParticleSpawner } from "./particleSpawner";
 import { Projectile } from "./projectile";
+import { TileMap } from "./tileMap";
 import { TowerMap } from "./towerMap";
 import { Ui } from "./ui";
 
-// TODO: Move as much as possible out of state and into relevant places.
-export type State = {
+export type World = {
     view: Container,
-    scaledView: Container,
     entitySpriteContainer: Container,
-    towerTextures: Texture[],
-    enemyTextures: Texture[],
-    projectileTextures: Texture[],
-    particleTextures: Texture[],
-    tileTextures: Texture[],
     input: Input,
     ui: Ui,
-    tileSprites: Sprite[],
     enemies: Enemy[],
     enemySpawner: EnemySpawner,
-    map: TowerMap,
+    towerMap: TowerMap,
+    tileMap: TileMap,
     projectiles: Projectile[],
+    particleSpawner: ParticleSpawner,
     particles: Particle[],
 }

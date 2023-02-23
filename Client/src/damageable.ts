@@ -1,6 +1,6 @@
-import { State } from "./state";
+import { ParticleSpawner } from "./particleSpawner";
 
 export interface IDamageable {
     // Returns true if the entity has died.
-    takeDamage(damage: number, state: State): boolean;
+    takeDamage(damage: number, particleSpawner: ParticleSpawner): boolean;
 }

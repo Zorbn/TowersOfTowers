@@ -1,4 +1,4 @@
-import { State } from "./state";
+import { Container } from "pixi.js";
 
 export class Input {
     private pressedKeys: Set<string>;
@@ -38,12 +38,12 @@ export class Input {
         return this.pressedMouseButtons.has(button);
     }
 
-    getMouseWorldX = (state: State) => {
-        return (this.mouseX - state.view.x) / state.scaledView.scale.x;
+    getMouseWorldX = (view: Container) => {
+        return (this.mouseX - view.x) / view.scale.x;
     }
 
-    getMouseWorldY = (state: State) => {
-        return (this.mouseY - state.view.y) / state.scaledView.scale.y;
+    getMouseWorldY = (view: Container) => {
+        return (this.mouseY - view.y) / view.scale.y;
     }
 
     getMouseX = () => {

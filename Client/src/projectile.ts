@@ -1,7 +1,10 @@
 import { Container, Sprite, Texture } from "pixi.js";
 import { IDestructable } from "./destructable";
-import { Particle, ParticleStats } from "./particle";
-import { State } from "./state";
+import { Enemy } from "./enemy";
+import { ParticleStats } from "./particle";
+import { ParticleSpawner } from "./particleSpawner";
+import { TowerMap } from "./towerMap";
+import { Ui } from "./ui";
 
 export class ProjectileStats {
     public readonly textureIndex: number;
@@ -34,18 +37,18 @@ export class Projectile implements IDestructable {
     }
 
     // Moves then checks for collisions, returns true if anything is hit.
-    update = (tileSize: number, state: State, deltaTime: number): boolean => {
-        if (this.x > state.map.width * tileSize) {
+    update = (ui: Ui, enemies: Enemy[], towerMap: TowerMap, particleSpawner: ParticleSpawner, deltaTime: number): boolean => {
+        if (this.x > towerMap.width * towerMap.tileSize) {
             return true;
         }
 
-        const lane = Math.floor(this.y / tileSize);
+        const lane = Math.floor(this.y / towerMap.tileSize);
         this.x += this.stats.speed * deltaTime;
         this.sprite.x = this.x;
 
-        for (let i = state.enemies.length - 1; i >= 0; i--) {
-            const enemy = state.enemies[i];
-            const enemyLane = Math.floor(enemy.getY() / tileSize);
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            const enemyLane = Math.floor(enemy.getY() / towerMap.tileSize);
 
             if (enemyLane != lane) {
                 continue;
@@ -53,14 +56,14 @@ export class Projectile implements IDestructable {
 
             const enemyX = enemy.getX();
 
-            if (this.x + tileSize < enemyX || this.x > enemyX + tileSize) {
+            if (this.x + towerMap.tileSize < enemyX || this.x > enemyX + towerMap.tileSize) {
                 continue;
             }
 
             // Remove the enemy if it died.
-            if (enemy.takeDamage(this.stats.damage, state)) {
-                state.ui.bank.addMoney(enemy.stats.value);
-                state.enemies.splice(i, 1);
+            if (enemy.takeDamage(this.stats.damage, particleSpawner)) {
+                ui.bank.addMoney(enemy.stats.value);
+                enemies.splice(i, 1);
             }
 
             return true;
@@ -69,8 +72,8 @@ export class Projectile implements IDestructable {
         return false;
     }
 
-    destroy = (state: State) => {
-        state.particles.push(new Particle(this.x, this.y, ParticleStats.smoke, state.particleTextures, this.container));
+    destroy = (particleSpawner: ParticleSpawner) => {
+        particleSpawner.queue(this.x, this.y, ParticleStats.smoke);
         this.container.removeChild(this.sprite);
     }
 }

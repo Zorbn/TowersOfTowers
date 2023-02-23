@@ -1,6 +1,8 @@
 import { Enemy, EnemyStats } from "./enemy";
-import { State } from "./state";
 import enemyStatsData from "./enemies.json";
+import { enemyTextures } from "./textureSheet";
+import { TowerMap } from "./towerMap";
+import { Container } from "pixi.js";
 
 const ENEMY_SPAWN_WIDTH = 2;
 const ENEMY_WAVE_LENGTH = 30;
@@ -78,7 +80,7 @@ export class EnemySpawner {
         this.setWave(this.wave + 1);
     }
 
-    updateSpawn = (state: State, deltaTime: number) => {
+    updateSpawn = (enemies: Enemy[], towerMap: TowerMap, container: Container, deltaTime: number) => {
         this.spawnTimer += deltaTime;
 
         if (this.spawnTimer < this.spawnTime) {
@@ -92,19 +94,19 @@ export class EnemySpawner {
         const statsI = Math.floor(Math.random() * this.enemyStatTiers[enemyTier].length);
         const stats = this.enemyStatTiers[enemyTier][statsI];
 
-        const x = (state.map.width + Math.random() * ENEMY_SPAWN_WIDTH) * state.map.tileSize;
-        const lane = Math.floor(Math.random() * state.map.height);
+        const x = (towerMap.width + Math.random() * ENEMY_SPAWN_WIDTH) * towerMap.tileSize;
+        const lane = Math.floor(Math.random() * towerMap.height);
 
-        state.enemies.push(new Enemy(stats, x, lane, state.map.tileSize, state.enemyTextures, state.entitySpriteContainer));
+        enemies.push(new Enemy(stats, x, lane, towerMap.tileSize, enemyTextures, container));
     }
 
-    update = (state: State, deltaTime: number) => {
+    update = (enemies: Enemy[], towerMap: TowerMap, container: Container, deltaTime: number) => {
         if (!this.active) {
             return;
         }
 
         this.updateWave(deltaTime);
-        this.updateSpawn(state, deltaTime);
+        this.updateSpawn(enemies, towerMap, container, deltaTime);
     }
 
     private static getSpawnTime = (wave: number): number => {

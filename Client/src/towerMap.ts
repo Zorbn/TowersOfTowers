@@ -1,7 +1,12 @@
 import { Container, Sprite } from "pixi.js";
 import { Tower, TowerStats } from "./tower";
-import { State } from "./state";
-import { Particle, ParticleStats } from "./particle";
+import { World } from "./world";
+import { ParticleStats } from "./particle";
+import { towerTextures } from "./textureSheet";
+import { TileMap } from "./tileMap";
+import { Ui } from "./ui";
+import { ParticleSpawner } from "./particleSpawner";
+import { Projectile } from "./projectile";
 
 export class TowerMap {
     private towers: Tower[];
@@ -37,7 +42,7 @@ export class TowerMap {
         return x >= 0 && x < this.width && y >= 0 && y < this.height;
     }
 
-    setTower = (state: State, x: number, y: number, tower: Tower) => {
+    setTower = (x: number, y: number, tower: Tower, particleSpawner: ParticleSpawner) => {
         x = Math.floor(x);
         y = Math.floor(y);
 
@@ -56,11 +61,11 @@ export class TowerMap {
             particleStats = ParticleStats.cloud;
         } else {
             towerSprite.visible = true;
-            towerSprite.texture = state.towerTextures[tower.stats.textureIndex];
+            towerSprite.texture = towerTextures[tower.stats.textureIndex];
             particleStats = ParticleStats.dust;
         }
 
-        state.particles.push(new Particle(towerSprite.x, towerSprite.y, particleStats, state.particleTextures, state.entitySpriteContainer));
+        particleSpawner.queue(towerSprite.x, towerSprite.y, particleStats);
     }
 
     getTower = (x: number, y: number): Tower => {
@@ -78,12 +83,34 @@ export class TowerMap {
         return this.getTower(x, y).stats;
     }
 
-    update = (state: State, deltaTime: number) => {
+    update = (projectiles: Projectile[], projectileContainer: Container, deltaTime: number) => {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 const i = x + y * this.width;
-                this.towers[i].update(x, y, this.tileSize, state, deltaTime);
+                this.towers[i].update(x, y, this.tileSize, projectiles, projectileContainer, deltaTime);
             }
         }
+    }
+
+    tryPlaceTower = (mouseTileX: number, mouseTileY: number, tileMap: TileMap, ui: Ui, particleSpawner: ParticleSpawner) => {
+        const oldTowerStats = this.getTowerStats(mouseTileX, mouseTileY);
+
+        if (!oldTowerStats.empty) {
+            ui.inventory.stopUsingTower(oldTowerStats, 1);
+            this.setTower(mouseTileX, mouseTileY, Tower.empty, particleSpawner);
+            tileMap.updateTileStyle(mouseTileX, mouseTileY, true);
+            return;
+        }
+
+        const selectedSlot = ui.getSelectedItem();
+
+        if (selectedSlot.towerStats.empty || !this.contains(mouseTileX, mouseTileY) ||
+            !ui.inventory.startUsingTower(selectedSlot.towerStats, 1)) {
+            return;
+        }
+
+        const newTowerStats = selectedSlot.towerStats;
+        tileMap.updateTileStyle(mouseTileX, mouseTileY, false);
+        this.setTower(mouseTileX, mouseTileY, new Tower(newTowerStats), particleSpawner);
     }
 }

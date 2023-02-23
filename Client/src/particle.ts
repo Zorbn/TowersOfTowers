@@ -1,6 +1,7 @@
 import { Container, Sprite, Texture } from "pixi.js";
 import { IDestructable } from "./destructable";
-import { State } from "./state";
+import { ParticleSpawner } from "./particleSpawner";
+import { particleTextures } from "./textureSheet";
 
 const PARTICLE_FPS = 10;
 
@@ -36,7 +37,7 @@ export class Particle implements IDestructable {
     }
 
     // Returns true when the particle has completed it's animation.
-    update = (state: State, deltaTime: number) => {
+    update = (deltaTime: number) => {
         this.time += deltaTime;
         const spriteI = Math.floor(this.time * PARTICLE_FPS);
 
@@ -44,11 +45,11 @@ export class Particle implements IDestructable {
             return true;
         }
 
-        this.sprite.texture = state.particleTextures[this.stats.textureIndex + spriteI];
+        this.sprite.texture = particleTextures[this.stats.textureIndex + spriteI];
         return false;
     }
 
-    destroy = (_state: State) => {
+    destroy = (_particleSpawner: ParticleSpawner) => {
         this.container.removeChild(this.sprite);
     }
 }

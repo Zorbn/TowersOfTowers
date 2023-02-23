@@ -1,5 +1,5 @@
-import { State } from "./state";
+import { ParticleSpawner } from "./particleSpawner";
 
 export interface IDestructable {
-    destroy(state: State): void;
+    destroy(particleSpawner: ParticleSpawner): void;
 }

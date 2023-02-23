@@ -1,12 +1,12 @@
-import { Application, Sprite, Container, Texture, Rectangle, SCALE_MODES, BitmapFont } from "pixi.js";
-import { Tower } from "./tower";
+import { Application, Sprite, Container, Texture, SCALE_MODES, BitmapFont } from "pixi.js";
 import { Input } from "./input";
-import { State } from "./state";
+import { World } from "./world";
 import { Ui } from "./ui";
 import { EnemySpawner } from "./enemySpawner";
 import { TowerMap } from "./towerMap";
-import towerStatsData from "./towers.json";
-import enemyStatsData from "./enemies.json";
+import { tileTextures } from "./textureSheet";
+import { TileMap } from "./tileMap";
+import { ParticleSpawner } from "./particleSpawner";
 
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;
@@ -15,83 +15,28 @@ const MAP_WIDTH = 15;
 const MAP_HEIGHT = 4;
 const TILE_SIZE = 16;
 const BASE_WIDTH = 3;
-const TEXTURE_SHEET_PADDING = 1;
 
 // TODO:
 // Animated enemies?
 // Networking?
 
-const onResize = (view: Container, scaledView: Container) => {
+const onResize = (view: Container) => {
     let scale = Math.min(window.innerWidth / VIEW_WIDTH, window.innerHeight / VIEW_HEIGHT);
 
-    scaledView.scale.x = scale;
-    scaledView.scale.y = scale;
+    view.scale.x = scale;
+    view.scale.y = scale;
 
     view.x = window.innerWidth / 2 - (VIEW_WIDTH * scale) / 2;
     view.y = window.innerHeight / 2 - (VIEW_HEIGHT * scale) / 2;
 }
 
-const loadTextureSheet = async (path: string, tileSize: number, tileCount: number): Promise<Texture[]> => {
-    const sheet = await Texture.fromURL(path);
-    const paddedTileSize = tileSize + TEXTURE_SHEET_PADDING * 2;
-    const sheetWidth = Math.floor(sheet.baseTexture.width / paddedTileSize);
-    sheet.baseTexture.scaleMode = SCALE_MODES.NEAREST;
-    let textures = new Array(tileCount);
-    for (let i = 0; i < tileCount; i++) {
-        const x = TEXTURE_SHEET_PADDING + paddedTileSize * (i % sheetWidth);
-        const y = TEXTURE_SHEET_PADDING + paddedTileSize * Math.floor(i / sheetWidth);
-        textures[i] = new Texture(sheet.baseTexture, new Rectangle(x, y, tileSize, tileSize));
-    }
-
-    return textures;
-}
-
-const getDefaultTileStyle = (state: State, tileX: number, tileY: number) => {
-    return (tileX + tileY * state.map.width) % 2;
-}
-
-const updateTileStyle = (state: State, tileX: number, tileY: number, empty: boolean) => {
-    tileX = Math.floor(tileX);
-    tileY = Math.floor(tileY);
-
-    let textureIndex = 3;
-
-    if (empty) {
-        textureIndex = getDefaultTileStyle(state, tileX, tileY);
-    }
-
-    state.tileSprites[tileX + tileY * state.map.width].texture = state.tileTextures[textureIndex];
-}
-
-const tryPlaceTower = (state: State, mouseTileX: number, mouseTileY: number) => {
-    const oldTowerStats = state.map.getTowerStats(mouseTileX, mouseTileY);
-
-    if (!oldTowerStats.empty) {
-        state.ui.inventory.stopUsingTower(oldTowerStats, 1);
-        state.map.setTower(state, mouseTileX, mouseTileY, Tower.empty);
-        updateTileStyle(state, mouseTileX, mouseTileY, true);
-        return;
-    }
-
-    const selectedSlot = state.ui.getSelectedItem();
-
-    if (selectedSlot.towerStats.empty || !state.map.contains(mouseTileX, mouseTileY) ||
-        !state.ui.inventory.startUsingTower(selectedSlot.towerStats, 1)) {
-        return;
-    }
-
-    const newTowerStats = selectedSlot.towerStats;
-    updateTileStyle(state, mouseTileX, mouseTileY, false);
-    state.map.setTower(state, mouseTileX, mouseTileY, new Tower(newTowerStats));
-}
-
-const updateEnemies = (state: State, deltaTime: number) => {
-    state.enemySpawner.update(state, deltaTime);
+const updateEnemies = (world: World, deltaTime: number) => {
+    world.enemySpawner.update(world.enemies, world.towerMap, world.entitySpriteContainer, deltaTime);
 
     let enemyInPlayerBase = false;
 
-    for (let enemy of state.enemies) {
-        enemy.update(deltaTime, state);
+    for (let enemy of world.enemies) {
+        enemy.update(deltaTime, world.towerMap, world.particleSpawner);
 
         // Check if the enemy has reached the player's base.
         if (enemy.getX() < -TILE_SIZE) {
@@ -101,60 +46,60 @@ const updateEnemies = (state: State, deltaTime: number) => {
     }
 
     if (enemyInPlayerBase) {
-        for (let enemy of state.enemies) {
-            enemy.destroy(state);
+        for (let enemy of world.enemies) {
+            enemy.destroy(world.particleSpawner);
         }
 
-        state.enemies.splice(0, state.enemies.length);
-        state.enemySpawner.reset();
+        world.enemies.splice(0, world.enemies.length);
+        world.enemySpawner.reset();
     }
 }
 
-const update = async (state: State, deltaTime: number) => {
-    state.ui.draw(state, TILE_SIZE);
+const update = async (world: World, deltaTime: number) => {
+    world.ui.draw(world.enemySpawner, TILE_SIZE);
 
     // TODO: Remove this.
-    if (state.input.wasKeyPressed("KeyM")) {
-        state.ui.bank.addMoney(25);
+    if (world.input.wasKeyPressed("KeyM")) {
+        world.ui.bank.addMoney(25);
     }
 
-    if (state.input.wasMouseButtonPressed(0)) {
-        const mouseX = state.input.getMouseX();
-        const mouseY = state.input.getMouseY();
-        const mouseWorldX = state.input.getMouseWorldX(state);
-        const mouseWorldY = state.input.getMouseWorldY(state);
-        const mouseTileX = (mouseWorldX - state.entitySpriteContainer.x) / TILE_SIZE;
-        const mouseTileY = (mouseWorldY - state.entitySpriteContainer.y) / TILE_SIZE;
+    if (world.input.wasMouseButtonPressed(0)) {
+        const mouseX = world.input.getMouseX();
+        const mouseY = world.input.getMouseY();
+        const mouseWorldX = world.input.getMouseWorldX(world.view);
+        const mouseWorldY = world.input.getMouseWorldY(world.view);
+        const mouseTileX = (mouseWorldX - world.entitySpriteContainer.x) / TILE_SIZE;
+        const mouseTileY = (mouseWorldY - world.entitySpriteContainer.y) / TILE_SIZE;
 
-        state.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, state);
+        world.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, world.towerMap, world.enemySpawner);
 
-        tryPlaceTower(state, mouseTileX, mouseTileY);
+        world.towerMap.tryPlaceTower(mouseTileX, mouseTileY, world.tileMap, world.ui, world.particleSpawner);
     }
 
-    updateEnemies(state, deltaTime);
+    updateEnemies(world, deltaTime);
 
-    for (let i = state.particles.length - 1; i >= 0; i--) {
-        const particle = state.particles[i];
+    for (let i = world.particles.length - 1; i >= 0; i--) {
+        const particle = world.particles[i];
 
-        if (particle.update(state, deltaTime)) {
-            particle.destroy(state);
-            state.particles.splice(i, 1);
+        if (particle.update(deltaTime)) {
+            particle.destroy(world.particleSpawner);
+            world.particles.splice(i, 1);
         }
     }
 
-    for (let i = state.projectiles.length - 1; i >= 0; i--) {
-        const projectile = state.projectiles[i];
+    for (let i = world.projectiles.length - 1; i >= 0; i--) {
+        const projectile = world.projectiles[i];
 
         // Remove the projectile if it had a collision.
-        if (projectile.update(TILE_SIZE, state, deltaTime)) {
-            projectile.destroy(state);
-            state.projectiles.splice(i, 1);
+        if (projectile.update(world.ui, world.enemies, world.towerMap, world.particleSpawner, deltaTime)) {
+            projectile.destroy(world.particleSpawner);
+            world.projectiles.splice(i, 1);
         }
     }
 
-    state.map.update(state, deltaTime);
-
-    state.input.update();
+    world.towerMap.update(world.projectiles, world.entitySpriteContainer, deltaTime);
+    world.input.update();
+    world.particleSpawner.update(world.particles, world.entitySpriteContainer);
 }
 
 const main = async () => {
@@ -174,17 +119,8 @@ const main = async () => {
     document.body.appendChild(app.view as HTMLCanvasElement);
 
     const view = new Container();
-    const scaledView = new Container();
-    view.addChild(scaledView);
-    scaledView.sortableChildren = true;
+    view.sortableChildren = true;
     app.stage.addChild(view);
-
-    const tileTextures = await loadTextureSheet("tileSheet.png", TILE_SIZE, 4);
-    const towerTextures = await loadTextureSheet("towerSheet.png", TILE_SIZE, towerStatsData.length);
-    const uiTextures = await loadTextureSheet("uiSheet.png", TILE_SIZE, 9);
-    const enemyTextures = await loadTextureSheet("enemySheet.png", TILE_SIZE, enemyStatsData.length);
-    const projectileTextures = await loadTextureSheet("projectileSheet.png", TILE_SIZE, 4);
-    const particleTextures = await loadTextureSheet("particleSheet.png", TILE_SIZE, 18);
 
     const background = new Container();
     background.zIndex = -1;
@@ -211,58 +147,29 @@ const main = async () => {
     backdropTexture.baseTexture.scaleMode = SCALE_MODES.NEAREST;
     const backdropSprite = new Sprite(backdropTexture);
     backdropSprite.zIndex = -2;
-    scaledView.addChild(backdropSprite);
+    view.addChild(backdropSprite);
 
     const entitySpriteContainer = new Container();
 
-    let state: State = {
+    let world: World = {
         view,
-        scaledView,
         input: new Input(),
-        ui: new Ui(TILE_SIZE, 9, 3,
-            VIEW_WIDTH, VIEW_HEIGHT, {
-            slotBackground: uiTextures[0],
-            slotSelected: uiTextures[1],
-            tabInventory: uiTextures[2],
-            tabShop: uiTextures[3],
-            tabSelected: uiTextures[1],
-            buyButton: uiTextures[4],
-            startButton: uiTextures[5],
-            buttonSelected: uiTextures[1],
-            downloadButton: uiTextures[6],
-            uploadButton: uiTextures[7],
-            saveButton: uiTextures[8],
-        }, scaledView),
-        projectileTextures,
-        towerTextures,
-        tileTextures,
-        enemyTextures,
-        particleTextures,
+        ui: new Ui(TILE_SIZE, 9, 3, VIEW_WIDTH, VIEW_HEIGHT, view),
         entitySpriteContainer,
         enemies: [],
         enemySpawner: new EnemySpawner(),
-        map: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, entitySpriteContainer),
+        towerMap: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, entitySpriteContainer),
+        tileMap: new TileMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, background),
         projectiles: [],
-        tileSprites: [],
         particles: [],
+        particleSpawner: new ParticleSpawner(),
     };
 
-    state.input.addListeners();
+    world.input.addListeners();
 
-    state.entitySpriteContainer.x = background.x;
-    state.entitySpriteContainer.y = background.y;
-    scaledView.addChild(state.entitySpriteContainer);
-
-    for (let y = 0; y < MAP_HEIGHT; y++) {
-        for (let x = 0; x < MAP_WIDTH; x++) {
-            const i = getDefaultTileStyle(state, x, y);
-            const newTile = new Sprite(tileTextures[i]);
-            newTile.x = x * TILE_SIZE;
-            newTile.y = y * TILE_SIZE;
-            state.tileSprites[x + y * MAP_WIDTH] = newTile;
-            background.addChild(newTile);
-        }
-    }
+    world.entitySpriteContainer.x = background.x;
+    world.entitySpriteContainer.y = background.y;
+    view.addChild(world.entitySpriteContainer);
 
     for (let x = -BASE_WIDTH; x < MAP_WIDTH + BASE_WIDTH; x++) {
         const edgeTile = new Sprite(tileTextures[2]);
@@ -271,13 +178,13 @@ const main = async () => {
         background.addChild(edgeTile);
     }
 
-    scaledView.addChild(background);
+    view.addChild(background);
 
-    onResize(view, scaledView);
+    onResize(view);
 
-    window.addEventListener("resize", () => onResize(view, scaledView));
+    window.addEventListener("resize", () => onResize(view));
 
-    app.ticker.add(() => update(state, app.ticker.deltaMS * 0.001));
+    app.ticker.add(() => update(world, app.ticker.deltaMS * 0.001));
 }
 
 main();

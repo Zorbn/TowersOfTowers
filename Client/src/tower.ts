@@ -1,6 +1,8 @@
+import { Container } from "pixi.js";
 import { IDamageable } from "./damageable";
+import { ParticleSpawner } from "./particleSpawner";
 import { Projectile, ProjectileStats } from "./projectile";
-import { State } from "./state";
+import { projectileTextures } from "./textureSheet";
 import towerStatsData from "./towers.json";
 
 export class TowerStats {
@@ -55,7 +57,7 @@ export class Tower implements IDamageable {
         this.attackTimer = 0;
     }
 
-    update = (tileX: number, tileY: number, tileSize: number, state: State, deltaTime: number) => {
+    update = (tileX: number, tileY: number, tileSize: number, projectiles: Projectile[], projectileContainer: Container, deltaTime: number) => {
         if (this.stats.projectileStats == null) {
             return;
         }
@@ -69,11 +71,11 @@ export class Tower implements IDamageable {
         this.attackTimer = 0;
         const x = (tileX + 0.5) * tileSize;
         const y = tileY * tileSize;
-        state.projectiles.push(new Projectile(this.stats.projectileStats, x, y,
-            state.projectileTextures, state.entitySpriteContainer));
+        projectiles.push(new Projectile(this.stats.projectileStats, x, y,
+            projectileTextures, projectileContainer));
     }
 
-    takeDamage = (damage: number, _state: State): boolean => {
+    takeDamage = (damage: number, _particleSpawner: ParticleSpawner): boolean => {
         this.health -= damage;
 
         if (this.health <= 0) {

@@ -1,10 +1,11 @@
 import { Container, Sprite, Texture } from "pixi.js";
-import { State } from "./state";
 import { Tower } from "./tower";
 import enemyStatsData from "./enemies.json";
-import { Particle, ParticleStats } from "./particle";
+import { ParticleStats } from "./particle";
 import { IDamageable } from "./damageable";
 import { IDestructable } from "./destructable";
+import { TowerMap } from "./towerMap";
+import { ParticleSpawner } from "./particleSpawner";
 
 export class EnemyStats {
     public readonly name: string;
@@ -68,12 +69,12 @@ export class Enemy implements IDamageable, IDestructable {
         this.container = container;
     }
 
-    update = (deltaTime: number, state: State) => {
+    update = (deltaTime: number, towerMap: TowerMap, particleSpawner: ParticleSpawner) => {
         this.attackTimer += deltaTime;
 
-        const tileX = this.x / state.map.tileSize;
-        const tileY = this.y / state.map.tileSize;
-        const tower = state.map.getTower(tileX, tileY);
+        const tileX = this.x / towerMap.tileSize;
+        const tileY = this.y / towerMap.tileSize;
+        const tower = towerMap.getTower(tileX, tileY);
 
         if (!tower.stats.empty) {
             if (this.attackTimer < this.stats.attackTime) {
@@ -82,8 +83,8 @@ export class Enemy implements IDamageable, IDestructable {
 
             this.attackTimer = 0;
 
-            if (tower.takeDamage(this.stats.damage, state)) {
-                state.map.setTower(state, tileX, tileY, Tower.empty);
+            if (tower.takeDamage(this.stats.damage, particleSpawner)) {
+                towerMap.setTower(tileX, tileY, Tower.empty, particleSpawner);
             }
 
             return;
@@ -93,19 +94,19 @@ export class Enemy implements IDamageable, IDestructable {
         this.sprite.x = this.x;
     }
 
-    takeDamage = (damage: number, state: State): boolean => {
+    takeDamage = (damage: number, particleSystem: ParticleSpawner): boolean => {
         this.health -= damage;
 
         if (this.health <= 0) {
-            this.destroy(state);
+            this.destroy(particleSystem);
             return true;
         }
 
         return false;
     }
 
-    destroy = (state: State) => {
-        state.particles.push(new Particle(this.x, this.y, ParticleStats.cloud, state.particleTextures, this.container));
+    destroy = (particleSpawner: ParticleSpawner) => {
+        particleSpawner.queue(this.x, this.y, ParticleStats.cloud);
         this.container.removeChild(this.sprite);
     }
 
