@@ -15,6 +15,8 @@ type EnemySpawnData = {
     statsIndex: number;
     x: number;
     lane: number;
+    id: number;
+    moving: boolean;
 }
 
 type ProjectileSpawnData = {
@@ -223,6 +225,78 @@ io.on("connection", (socket) => {
         }
 
         socket.broadcast.to(room).emit("removeProjectile", id);
+    });
+
+    socket.on("syncSpawnEnemy", (spawnData: EnemySpawnData) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("spawnEnemy", spawnData);
+    });
+
+    socket.on("syncRemoveEnemy", (id: number) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("removeEnemy", id);
+    });
+
+    socket.on("syncEnemyMoving", (id: number, moving: boolean) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("setEnemyMoving", id, moving);
+    });
+
+    socket.on("syncWave", (wave: number, active: boolean) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("setWave", wave, active);
     });
 });
 

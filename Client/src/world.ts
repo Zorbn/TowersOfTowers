@@ -16,7 +16,7 @@ export type World = {
     input: Input,
     ui: Ui,
     network: Network,
-    enemies: Enemy[],
+    enemies: Map<number, Enemy>,
     enemySpawner: EnemySpawner,
     towerMap: TowerMap,
     tileMap: TileMap,

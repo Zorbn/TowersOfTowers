@@ -1,6 +1,7 @@
 import { Container, Sprite } from "pixi.js";
 import { IDestructable } from "./destructable";
 import { Enemy } from "./enemy";
+import { Network } from "./network";
 import { ParticleStats } from "./particle";
 import { ParticleSpawner } from "./particleSpawner";
 import { projectileTextures } from "./textureSheet";
@@ -42,7 +43,7 @@ export class Projectile implements IDestructable {
     }
 
     // Moves then checks for collisions, returns true if anything is hit.
-    update = (ui: Ui, enemies: Enemy[], towerMap: TowerMap, particleSpawner: ParticleSpawner, deltaTime: number): boolean => {
+    update = (ui: Ui, enemies: Map<number, Enemy>, towerMap: TowerMap, particleSpawner: ParticleSpawner, network: Network, deltaTime: number): boolean => {
         if (this.x > towerMap.width * towerMap.tileSize) {
             return true;
         }
@@ -51,8 +52,7 @@ export class Projectile implements IDestructable {
 
         const lane = Math.floor(this.y / towerMap.tileSize);
 
-        for (let i = enemies.length - 1; i >= 0; i--) {
-            const enemy = enemies[i];
+        for (let [id, enemy] of enemies) {
             const enemyLane = Math.floor(enemy.getY() / towerMap.tileSize);
 
             if (enemyLane != lane) {
@@ -68,7 +68,8 @@ export class Projectile implements IDestructable {
             // Remove the enemy if it died.
             if (enemy.takeDamage(this.stats.damage, particleSpawner)) {
                 ui.bank.addMoney(enemy.stats.value);
-                enemies.splice(i, 1);
+                enemies.delete(id);
+                network.syncRemoveEnemy(id);
             }
 
             return true;

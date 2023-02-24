@@ -50,13 +50,15 @@ const onResize = (view: Container) => {
     view.y = window.innerHeight / 2 - (VIEW_HEIGHT * scale) / 2;
 }
 
-const updateEnemies = (world: World, deltaTime: number) => {
-    world.enemySpawner.update(world.enemies, world.towerMap, world.entitySpriteContainer, deltaTime);
+const updateHostEnemies = (world: World, deltaTime: number) => {
+    world.enemySpawner.update(world.enemies, world.towerMap,
+        world.entitySpriteContainer, world.network, deltaTime);
 
     let enemyInPlayerBase = false;
 
-    for (let enemy of world.enemies) {
-        enemy.update(deltaTime, world.towerMap, world.particleSpawner);
+    for (let [id, enemy] of world.enemies) {
+        enemy.update(id, world.towerMap, world.tileMap, world.ui,
+            world.particleSpawner, world.network, deltaTime);
 
         // Check if the enemy has reached the player's base.
         if (enemy.getX() < -TILE_SIZE) {
@@ -66,12 +68,20 @@ const updateEnemies = (world: World, deltaTime: number) => {
     }
 
     if (enemyInPlayerBase) {
-        for (let enemy of world.enemies) {
+        for (let [id, enemy] of world.enemies) {
             enemy.destroy(world.particleSpawner);
+            world.network.syncRemoveEnemy(id);
         }
 
-        world.enemies.splice(0, world.enemies.length);
+        world.enemies.clear();
         world.enemySpawner.reset();
+        world.network.syncWave(world.enemySpawner.getWave(), world.enemySpawner.isActive());
+    }
+}
+
+const updateClientEnemies = (world: World, deltaTime: number) => {
+    for (let [, enemy] of world.enemies) {
+        enemy.move(deltaTime);
     }
 }
 
@@ -113,11 +123,11 @@ const updatePostCommon = async (world: World) => {
 }
 
 const updateHost = async (world: World, deltaTime: number) => {
-    updateEnemies(world, deltaTime);
+    updateHostEnemies(world, deltaTime);
 
     for (let [id, projectile] of world.projectiles) {
         // Remove the projectile if it had a collision.
-        if (projectile.update(world.ui, world.enemies, world.towerMap, world.particleSpawner, deltaTime)) {
+        if (projectile.update(world.ui, world.enemies, world.towerMap, world.particleSpawner, world.network, deltaTime)) {
             projectile.destroy(world.particleSpawner);
             world.projectiles.delete(id);
             world.network.syncRemoveProjectile(id);
@@ -128,6 +138,8 @@ const updateHost = async (world: World, deltaTime: number) => {
 }
 
 const updateClient = async (world: World, deltaTime: number) => {
+    updateClientEnemies(world, deltaTime);
+
     for (let [, projectile] of world.projectiles) {
         projectile.move(deltaTime);
     }
@@ -200,7 +212,7 @@ const main = async () => {
         ui: new Ui(TILE_SIZE, 9, 3, VIEW_WIDTH, VIEW_HEIGHT, view),
         network: new Network(),
         entitySpriteContainer,
-        enemies: [],
+        enemies: new Map(),
         enemySpawner: new EnemySpawner(),
         towerMap: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, entitySpriteContainer),
         tileMap: new TileMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, background),

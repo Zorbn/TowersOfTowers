@@ -2,6 +2,7 @@ import { Enemy, EnemyStats } from "./enemy";
 import enemyStatsData from "./enemies.json";
 import { TowerMap } from "./towerMap";
 import { Container } from "pixi.js";
+import { Network } from "./network";
 
 const ENEMY_SPAWN_WIDTH = 2;
 const ENEMY_WAVE_LENGTH = 30;
@@ -69,7 +70,7 @@ export class EnemySpawner {
         return this.wave;
     }
 
-    updateWave = (deltaTime: number) => {
+    updateWave = (network: Network, deltaTime: number) => {
         this.waveTimer += deltaTime;
 
         if (this.waveTimer < ENEMY_WAVE_LENGTH) {
@@ -77,9 +78,10 @@ export class EnemySpawner {
         }
 
         this.setWave(this.wave + 1);
+        network.syncWave(this.wave, this.active);
     }
 
-    updateSpawn = (enemies: Enemy[], towerMap: TowerMap, container: Container, deltaTime: number) => {
+    updateSpawn = (enemies: Map<number, Enemy>, towerMap: TowerMap, container: Container, network: Network, deltaTime: number) => {
         this.spawnTimer += deltaTime;
 
         if (this.spawnTimer < this.spawnTime) {
@@ -96,16 +98,19 @@ export class EnemySpawner {
         const x = (towerMap.width + Math.random() * ENEMY_SPAWN_WIDTH) * towerMap.tileSize;
         const lane = Math.floor(Math.random() * towerMap.height);
 
-        enemies.push(new Enemy(stats, x, lane, towerMap.tileSize, container));
+        const enemyId = Enemy.getNextId();
+        const enemy = new Enemy(stats, x, lane, towerMap.tileSize, container, true);
+        enemies.set(enemyId, enemy);
+        network.syncSpawnEnemy(enemyId, enemy);
     }
 
-    update = (enemies: Enemy[], towerMap: TowerMap, container: Container, deltaTime: number) => {
+    update = (enemies: Map<number, Enemy>, towerMap: TowerMap, container: Container, network: Network, deltaTime: number) => {
         if (!this.active) {
             return;
         }
 
-        this.updateWave(deltaTime);
-        this.updateSpawn(enemies, towerMap, container, deltaTime);
+        this.updateWave(network, deltaTime);
+        this.updateSpawn(enemies, towerMap, container, network, deltaTime);
     }
 
     private static getSpawnTime = (wave: number): number => {
