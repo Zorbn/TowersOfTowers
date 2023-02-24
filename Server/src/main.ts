@@ -56,7 +56,6 @@ const leaveRoom = (socket: Socket) => {
         const otherClientsInRoom = io.sockets.adapter.rooms.get(currentRoom);
         if (otherClientsInRoom != undefined) {
             for (let otherClient of otherClientsInRoom) {
-                console.log(otherClient);
                 roomHosts.set(currentRoom, otherClient);
                 io.to(otherClient).emit("promoteToHost");
                 break;
@@ -188,6 +187,42 @@ io.on("connection", (socket) => {
         }
 
         socket.broadcast.to(room).emit("removeTower", x, y);
+    });
+
+    socket.on("syncSpawnProjectile", (spawnData: ProjectileSpawnData) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("spawnProjectile", spawnData);
+    });
+
+    socket.on("syncRemoveProjectile", (id: number) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("removeProjectile", id);
     });
 });
 

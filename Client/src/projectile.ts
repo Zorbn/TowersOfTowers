@@ -28,6 +28,8 @@ export class Projectile implements IDestructable {
     private sprite: Sprite;
     private container: Container;
 
+    private static nextId: number = 0;
+
     constructor(stats: ProjectileStats, x: number, y: number, container: Container) {
         this.stats = stats;
         this.x = x;
@@ -45,9 +47,9 @@ export class Projectile implements IDestructable {
             return true;
         }
 
+        this.move(deltaTime);
+
         const lane = Math.floor(this.y / towerMap.tileSize);
-        this.x += this.stats.speed * deltaTime;
-        this.sprite.x = this.x;
 
         for (let i = enemies.length - 1; i >= 0; i--) {
             const enemy = enemies[i];
@@ -75,6 +77,11 @@ export class Projectile implements IDestructable {
         return false;
     }
 
+    move = (deltaTime: number) => {
+        this.x += this.stats.speed * deltaTime;
+        this.sprite.x = this.x;
+    }
+
     destroy = (particleSpawner: ParticleSpawner) => {
         particleSpawner.queue(this.x, this.y, ParticleStats.smoke);
         this.container.removeChild(this.sprite);
@@ -86,5 +93,9 @@ export class Projectile implements IDestructable {
 
     getY = () => {
         return this.y;
+    }
+
+    static getNextId = (): number => {
+        return this.nextId++;
     }
 }

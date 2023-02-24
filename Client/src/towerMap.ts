@@ -84,11 +84,11 @@ export class TowerMap {
         return this.getTower(x, y).stats;
     }
 
-    update = (projectiles: Projectile[], projectileContainer: Container, deltaTime: number) => {
+    update = (projectiles: Map<number, Projectile>, projectileContainer: Container, network: Network, deltaTime: number) => {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 const i = x + y * this.width;
-                this.towers[i].update(x, y, this.tileSize, projectiles, projectileContainer, deltaTime);
+                this.towers[i].update(x, y, this.tileSize, projectiles, projectileContainer, network, deltaTime);
             }
         }
     }

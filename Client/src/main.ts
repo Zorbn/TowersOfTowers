@@ -115,21 +115,23 @@ const updatePostCommon = async (world: World) => {
 const updateHost = async (world: World, deltaTime: number) => {
     updateEnemies(world, deltaTime);
 
-    for (let i = world.projectiles.length - 1; i >= 0; i--) {
-        const projectile = world.projectiles[i];
-
+    for (let [id, projectile] of world.projectiles) {
         // Remove the projectile if it had a collision.
         if (projectile.update(world.ui, world.enemies, world.towerMap, world.particleSpawner, deltaTime)) {
             projectile.destroy(world.particleSpawner);
-            world.projectiles.splice(i, 1);
+            world.projectiles.delete(id);
+            world.network.syncRemoveProjectile(id);
         }
     }
 
-    world.towerMap.update(world.projectiles, world.entitySpriteContainer, deltaTime);
+    world.towerMap.update(world.projectiles, world.entitySpriteContainer, world.network, deltaTime);
 }
 
-// const updateClient = async (world: World, _deltaTime: number) => {
-// }
+const updateClient = async (world: World, deltaTime: number) => {
+    for (let [, projectile] of world.projectiles) {
+        projectile.move(deltaTime);
+    }
+}
 
 const update = async (world: World, deltaTime: number) => {
     updateCommon(world, deltaTime);
@@ -137,7 +139,7 @@ const update = async (world: World, deltaTime: number) => {
     if (world.network.isInControl()) {
         updateHost(world, deltaTime);
     } else {
-        // updateClient(world, deltaTime);
+        updateClient(world, deltaTime);
     }
 
     updatePostCommon(world);
@@ -202,7 +204,7 @@ const main = async () => {
         enemySpawner: new EnemySpawner(),
         towerMap: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, entitySpriteContainer),
         tileMap: new TileMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, background),
-        projectiles: [],
+        projectiles: new Map(),
         particles: [],
         particleSpawner: new ParticleSpawner(),
     };

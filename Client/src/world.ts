@@ -20,7 +20,7 @@ export type World = {
     enemySpawner: EnemySpawner,
     towerMap: TowerMap,
     tileMap: TileMap,
-    projectiles: Projectile[],
+    projectiles: Map<number, Projectile>,
     particleSpawner: ParticleSpawner,
     particles: Particle[],
 }
