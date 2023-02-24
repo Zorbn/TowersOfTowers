@@ -9,25 +9,7 @@ import { Tower, TowerStats } from './tower';
 import { TowerMap } from './towerMap';
 import { Ui } from './ui';
 
-/*
- = On start:
- + Sync wave number
- + Sync wave start
- + Sync enemy positions
- + Sync projectile positions
- + Sync tower positions
- = In game:
- + Sync enemy spawns/despawns
- + Sync enemy starts/stops
- + Sync tower spawns/despawns
- + Prevent picking up other player's towers
- + Sync projectile spawns/despawns
- = On connect/disconnect:
- * Remove local enemies
- * Remove local projectiles
- * Remove local towers
- * Reset enemy spawner/wave
- */
+// TODO: When a player disconnects, remove their towers on the host.
 
 type EnemySpawnData = {
     statsIndex: number;
@@ -99,14 +81,62 @@ export class Network {
     private socket: Socket<ServerToClientEvents, ClientToServerEvents>;
     private connected: boolean;
     private host: boolean;
+    private connectEvent: Event;
+    private disconnectEvent: Event;
 
     constructor() {
         this.socket = io();
         this.connected = false;
         this.host = false;
+        this.connectEvent = new Event("connect");
+        this.disconnectEvent = new Event("disconnect");
     }
 
-    addListeners = (ui: Ui, enemySpawner: EnemySpawner, enemies: Map<number, Enemy>, towerMap: TowerMap, tileMap: TileMap, projectiles: Map<number, Projectile>, particleSpawner: ParticleSpawner, entitySpriteContainer: Container) => {
+    addListeners = (ui: Ui, enemySpawner: EnemySpawner, enemies: Map<number, Enemy>,
+        towerMap: TowerMap, tileMap: TileMap, projectiles: Map<number, Projectile>,
+        particleSpawner: ParticleSpawner, entitySpriteContainer: Container) => {
+
+        const resetState = () => {
+            // TODO: Unify common functionality if possible, ie: removing all enemies is also done in main host update.
+            for (let [, enemy] of enemies) {
+                enemy.destroy(particleSpawner);
+            }
+
+            enemies.clear();
+            enemySpawner.reset();
+
+            for (let [, projectile] of projectiles) {
+                projectile.destroy(particleSpawner);
+            }
+
+            projectiles.clear();
+
+            for (let y = 0; y < towerMap.height; y++) {
+                for (let x = 0; x < towerMap.width; x++) {
+                    const tower = towerMap.getTower(x, y);
+                    if (tower.stats.empty) {
+                        continue;
+                    }
+
+                    // TODO: There should be a simpler api for removing tower and
+                    // returning it to the owner's inventory.
+                    if (tower.locallyOwned) {
+                        ui.inventory.stopUsingTower(tower.stats, 1);
+                    }
+
+                    towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+                }
+            }
+        }
+
+        addEventListener("connect", () => {
+            resetState();
+        });
+
+        addEventListener("disconnect", () => {
+            resetState();
+        });
+
         this.socket.on("start", () => {
             ui.start(enemySpawner);
         });
@@ -318,6 +348,7 @@ export class Network {
 
         this.socket.emit("joinRoom", roomName);
         this.connected = true;
+        dispatchEvent(this.connectEvent);
     }
 
     disconnect = () => {
@@ -329,6 +360,7 @@ export class Network {
 
         this.socket.emit("leaveRoom");
         this.connected = false;
+        dispatchEvent(this.disconnectEvent);
     }
 
     isConnected = (): boolean => {

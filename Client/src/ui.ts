@@ -694,7 +694,6 @@ export class Ui {
 
         if (network.isConnected()) {
             network.disconnect();
-            console.log("Disconnecting");
         } else {
             this.enableNetworkPanel(!this.networkPanelContainer.visible);
         }
