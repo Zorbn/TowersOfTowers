@@ -75,22 +75,24 @@ const updateEnemies = (world: World, deltaTime: number) => {
     }
 }
 
-const updateCommon = async (world: World) => {
+const updateCommon = async (world: World, deltaTime: number) => {
     world.ui.update(world.input);
     world.ui.draw(world.enemySpawner, TILE_SIZE);
+
+    for (let i = world.particles.length - 1; i >= 0; i--) {
+        const particle = world.particles[i];
+
+        if (particle.update(deltaTime)) {
+            particle.destroy(world.particleSpawner);
+            world.particles.splice(i, 1);
+        }
+    }
 
     // TODO: Remove this.
     if (world.input.wasKeyPressed("KeyM")) {
         world.ui.bank.addMoney(25);
     }
-}
 
-const updatePostCommon = async (world: World) => {
-    world.particleSpawner.update(world.particles, world.entitySpriteContainer);
-    world.input.update();
-}
-
-const updateHost = async (world: World, deltaTime: number) => {
     if (world.input.wasMouseButtonPressed(0)) {
         const mouseX = world.input.getMouseX();
         const mouseY = world.input.getMouseY();
@@ -101,19 +103,17 @@ const updateHost = async (world: World, deltaTime: number) => {
 
         world.ui.interact(mouseWorldX, mouseWorldY, mouseX, mouseY, world.towerMap, world.enemySpawner, world.network);
 
-        world.towerMap.tryPlaceTower(mouseTileX, mouseTileY, world.tileMap, world.ui, world.particleSpawner);
+        world.towerMap.tryPlaceTower(mouseTileX, mouseTileY, world.tileMap, world.ui, world.particleSpawner, world.network);
     }
+}
 
+const updatePostCommon = async (world: World) => {
+    world.particleSpawner.update(world.particles, world.entitySpriteContainer);
+    world.input.update();
+}
+
+const updateHost = async (world: World, deltaTime: number) => {
     updateEnemies(world, deltaTime);
-
-    for (let i = world.particles.length - 1; i >= 0; i--) {
-        const particle = world.particles[i];
-
-        if (particle.update(deltaTime)) {
-            particle.destroy(world.particleSpawner);
-            world.particles.splice(i, 1);
-        }
-    }
 
     for (let i = world.projectiles.length - 1; i >= 0; i--) {
         const projectile = world.projectiles[i];
@@ -128,13 +128,13 @@ const updateHost = async (world: World, deltaTime: number) => {
     world.towerMap.update(world.projectiles, world.entitySpriteContainer, deltaTime);
 }
 
-// const updateClient = async (_world: World, _deltaTime: number) => {
+// const updateClient = async (world: World, _deltaTime: number) => {
 // }
 
 const update = async (world: World, deltaTime: number) => {
-    updateCommon(world);
+    updateCommon(world, deltaTime);
 
-    if (!world.network.isConnected() || world.network.isHost()) {
+    if (world.network.isInControl()) {
         updateHost(world, deltaTime);
     } else {
         // updateClient(world, deltaTime);
@@ -207,7 +207,7 @@ const main = async () => {
         particleSpawner: new ParticleSpawner(),
     };
 
-    world.network.addListeners(world.ui, world.enemySpawner, world.enemies, world.towerMap, world.projectiles, world.particleSpawner, world.entitySpriteContainer);
+    world.network.addListeners(world.ui, world.enemySpawner, world.enemies, world.towerMap, world.tileMap, world.projectiles, world.particleSpawner, world.entitySpriteContainer);
     world.input.addListeners();
 
     world.entitySpriteContainer.x = background.x;

@@ -4,6 +4,7 @@ import { Enemy, EnemyStats } from './enemy';
 import { EnemySpawner } from './enemySpawner';
 import { ParticleSpawner } from './particleSpawner';
 import { Projectile } from './projectile';
+import { TileMap } from './tileMap';
 import { Tower, TowerStats } from './tower';
 import { TowerMap } from './towerMap';
 import { Ui } from './ui';
@@ -18,8 +19,8 @@ import { Ui } from './ui';
  = In game:
  * Sync enemy spawns/despawns
  * Sync enemy starts/stops
- * Sync tower spawns/despawns
- * Prevent picking up other player's towers
+ + Sync tower spawns/despawns
+ + Prevent picking up other player's towers
  * Sync projectile spawns/despawns
  = On connect/disconnect:
  * Remove local enemies
@@ -60,6 +61,12 @@ interface ServerToClientEvents {
     getState: (forId: string) => void;
     setState: (state: HostState) => void;
     promoteToHost: () => void;
+    hostPlaceTower: (x: number, y: number, towerIndex: number, forId: string) => void;
+    remotePlaceTower: (x: number, y: number, towerIndex: number) => void;
+    localPlaceTower: (x: number, y: number, towerIndex: number) => void;
+    refundPlaceTower: (towerIndex: number) => void;
+    hostRemoveTower: (x: number, y: number) => void;
+    removeTower: (x: number, y: number) => void;
 }
 
 interface ClientToServerEvents {
@@ -67,6 +74,11 @@ interface ClientToServerEvents {
     joinRoom: (roomName: string) => void;
     leaveRoom: () => void;
     start: () => void;
+    requestPlaceTower: (x: number, y: number, towerIndex: number) => void;
+    syncPlaceTower: (x: number, y: number, towerIndex: number, forId: string) => void;
+    failedPlaceTower: (towerIndex: number, forId: string) => void;
+    requestRemoveTower: (x: number, y: number) => void;
+    syncRemoveTower: (x: number, y: number) => void;
 }
 
 export class Network {
@@ -80,7 +92,7 @@ export class Network {
         this.host = false;
     }
 
-    addListeners = (ui: Ui, enemySpawner: EnemySpawner, enemies: Enemy[], towerMap: TowerMap, projectiles: Projectile[], particleSpawner: ParticleSpawner, entitySpriteContainer: Container) => {
+    addListeners = (ui: Ui, enemySpawner: EnemySpawner, enemies: Enemy[], towerMap: TowerMap, tileMap: TileMap, projectiles: Projectile[], particleSpawner: ParticleSpawner, entitySpriteContainer: Container) => {
         this.socket.on("start", () => {
             ui.start(enemySpawner);
         });
@@ -90,7 +102,7 @@ export class Network {
 
             for (let enemy of enemies) {
                 enemySpawns.push({
-                    statsIndex: enemy.stats.loadIndex,
+                    statsIndex: enemy.stats.index,
                     x: enemy.getX(),
                     lane: enemy.lane,
                 });
@@ -100,7 +112,7 @@ export class Network {
 
             for (let projectile of projectiles) {
                 projectileSpawns.push({
-                    towerStatsIndex: projectile.stats.towerLoadIndex,
+                    towerStatsIndex: projectile.stats.towerIndex,
                     x: projectile.getX(),
                     y: projectile.getY(),
                 })
@@ -115,7 +127,7 @@ export class Network {
                         continue;
                     }
 
-                    towerSpawns.push({ statsIndex: tower.stats.loadIndex, x, y });
+                    towerSpawns.push({ statsIndex: tower.stats.index, x, y });
                 }
             }
 
@@ -156,19 +168,67 @@ export class Network {
                     spawn.x,
                     spawn.y,
                     entitySpriteContainer,
-                ))
+                ));
             }
 
             for (let spawn of state.towerSpawns) {
                 const towerStats = TowerStats.loadedTowerStats[spawn.statsIndex];
                 const tower = new Tower(towerStats, false);
-                towerMap.setTower(spawn.x, spawn.y, tower, particleSpawner);
+                towerMap.setTower(spawn.x, spawn.y, tower, tileMap, particleSpawner);
             }
         });
 
         this.socket.on("promoteToHost", () => {
             console.log("promoted");
             this.host = true;
+        });
+
+        this.socket.on("hostPlaceTower", (x, y, towerIndex, forId) => {
+            if (!towerMap.getTowerStats(x, y).empty) {
+                this.socket.emit("failedPlaceTower", towerIndex, forId);
+                return;
+            }
+
+            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex], false);
+            towerMap.setTower(x, y, tower, tileMap, particleSpawner);
+            this.socket.emit("syncPlaceTower", x, y, towerIndex, forId);
+        });
+
+        this.socket.on("refundPlaceTower", (towerIndex) => {
+            ui.inventory.stopUsingTower(TowerStats.loadedTowerStats[towerIndex], 1);
+        });
+
+        this.socket.on("localPlaceTower", (x, y, towerIndex) => {
+            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex]);
+            towerMap.setTower(x, y, tower, tileMap, particleSpawner);
+        });
+
+        this.socket.on("remotePlaceTower", (x, y, towerIndex) => {
+            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex], false);
+            towerMap.setTower(x, y, tower, tileMap, particleSpawner);
+        });
+
+        this.socket.on("hostRemoveTower", (x, y) => {
+            if (towerMap.getTowerStats(x, y).empty) {
+                return;
+            }
+
+            towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+            this.socket.emit("syncRemoveTower", x, y);
+        });
+
+        this.socket.on("removeTower", (x, y) => {
+            const tower = towerMap.getTower(x, y);
+
+            if (tower.stats.empty) {
+                return;
+            }
+
+            if (tower.locallyOwned) {
+                ui.inventory.stopUsingTower(tower.stats, 1);
+            }
+
+            towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
         });
     }
 
@@ -204,7 +264,27 @@ export class Network {
         this.socket.emit("start");
     }
 
+    requestPlaceTower = (x: number, y: number, towerIndex: number) => {
+        this.socket.emit("requestPlaceTower", x, y, towerIndex);
+    }
+
+    requestRemoveTower = (x: number, y: number) => {
+        this.socket.emit("requestRemoveTower", x, y);
+    }
+
+    syncPlaceTower = (x: number, y: number, towerIndex: number) => {
+        this.socket.emit("syncPlaceTower", x, y, towerIndex, this.socket.id);
+    }
+
+    syncRemoveTower = (x: number, y: number) => {
+        this.socket.emit("syncRemoveTower", x, y);
+    }
+
     isHost = (): boolean => {
         return this.host;
+    }
+
+    isInControl = (): boolean => {
+        return !this.connected || this.host;
     }
 }

@@ -636,8 +636,11 @@ export class Ui {
             return;
         }
 
-        this.start(enemySpawner);
-        network.syncStart();
+        if (network.isConnected()) {
+            network.syncStart();
+        } else {
+            this.start(enemySpawner);
+        }
     }
 
     interactWithSaveButton = (mouseX: number, mouseY: number) => {

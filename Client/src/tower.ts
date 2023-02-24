@@ -11,23 +11,23 @@ export class TowerStats {
     public readonly attackTime: number;
     public readonly health: number;
     public readonly empty: boolean;
-    public readonly loadIndex: number;
+    public readonly index: number;
 
-    constructor(name: string, textureIndex: number, projectileStats: ProjectileStats | null, attackTime: number, health: number, loadIndex: number, empty: boolean = false) {
+    constructor(name: string, textureIndex: number, projectileStats: ProjectileStats | null, attackTime: number, health: number, index: number, empty: boolean = false) {
         this.name = name;
         this.textureIndex = textureIndex;
         this.projectileStats = projectileStats;
         this.attackTime = attackTime;
         this.health = health;
         this.empty = empty;
-        this.loadIndex = loadIndex;
+        this.index = index;
     }
 
     private static loadTowerStats = (): TowerStats[] => {
         let towerStats: TowerStats[] = [];
 
         for (let data of towerStatsData) {
-            const loadIndex = towerStats.length;
+            const index = towerStats.length;
             towerStats.push(new TowerStats(
                 data.name,
                 data.textureIndex,
@@ -35,11 +35,11 @@ export class TowerStats {
                     data.projectileStats.textureIndex,
                     data.projectileStats.damage,
                     data.projectileStats.speed,
-                    loadIndex,
+                    index,
                 ),
                 data.attackTime,
                 data.health,
-                loadIndex,
+                index,
             ));
         }
 

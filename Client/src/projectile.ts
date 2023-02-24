@@ -11,13 +11,13 @@ export class ProjectileStats {
     public readonly textureIndex: number;
     public readonly damage: number;
     public readonly speed: number;
-    public readonly towerLoadIndex: number;
+    public readonly towerIndex: number;
 
-    constructor(textureIndex: number, damage: number, speed: number, towerLoadIndex: number) {
+    constructor(textureIndex: number, damage: number, speed: number, towerIndex: number) {
         this.textureIndex = textureIndex;
         this.damage = damage;
         this.speed = speed;
-        this.towerLoadIndex = towerLoadIndex;
+        this.towerIndex = towerIndex;
     }
 }
 

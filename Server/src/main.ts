@@ -56,8 +56,9 @@ const leaveRoom = (socket: Socket) => {
         const otherClientsInRoom = io.sockets.adapter.rooms.get(currentRoom);
         if (otherClientsInRoom != undefined) {
             for (let otherClient of otherClientsInRoom) {
+                console.log(otherClient);
                 roomHosts.set(currentRoom, otherClient);
-                socket.emit("promoteToHost");
+                io.to(otherClient).emit("promoteToHost");
                 break;
             }
         }
@@ -105,6 +106,89 @@ io.on("connection", (socket) => {
     socket.on("returnState", (state: HostState, forId: string) => {
         io.to(forId).emit("setState", state);
     })
+
+    socket.on("requestPlaceTower", (x: number, y: number, towerIndex: number) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        io.to(roomHost).emit("hostPlaceTower", x, y, towerIndex, socket.id);
+    });
+
+    socket.on("failedPlaceTower", (towerIndex: number, forId: string) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        io.to(forId).emit("refundPlaceTower", towerIndex);
+    });
+
+    socket.on("syncPlaceTower", (x: number, y: number, towerIndex: number, forId: string) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).except(forId).emit("remotePlaceTower", x, y, towerIndex);
+        socket.broadcast.to(forId).emit("localPlaceTower", x, y, towerIndex);
+    });
+
+    socket.on("requestRemoveTower", (x: number, y: number) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        io.to(roomHost).emit("hostRemoveTower", x, y);
+    });
+
+    socket.on("syncRemoveTower", (x: number, y: number) => {
+        const room = playerRooms.get(socket.id);
+        if (room == undefined) {
+            return;
+        }
+
+        const roomHost = roomHosts.get(room);
+        if (roomHost == undefined) {
+            return;
+        }
+
+        if (roomHost != socket.id) {
+            return;
+        }
+
+        socket.broadcast.to(room).emit("removeTower", x, y);
+    });
 });
 
 httpServer.listen(PORT, () => {

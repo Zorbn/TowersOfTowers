@@ -6,6 +6,7 @@ import { TileMap } from "./tileMap";
 import { Ui } from "./ui";
 import { ParticleSpawner } from "./particleSpawner";
 import { Projectile } from "./projectile";
+import { Network } from "./network";
 
 export class TowerMap {
     private towers: Tower[];
@@ -41,7 +42,7 @@ export class TowerMap {
         return x >= 0 && x < this.width && y >= 0 && y < this.height;
     }
 
-    setTower = (x: number, y: number, tower: Tower, particleSpawner: ParticleSpawner) => {
+    setTower = (x: number, y: number, tower: Tower, tileMap: TileMap, particleSpawner: ParticleSpawner) => {
         x = Math.floor(x);
         y = Math.floor(y);
 
@@ -64,6 +65,7 @@ export class TowerMap {
             particleStats = ParticleStats.dust;
         }
 
+        tileMap.updateTileStyle(x, y, tower.stats.empty);
         particleSpawner.queue(towerSprite.x, towerSprite.y, particleStats);
     }
 
@@ -91,29 +93,38 @@ export class TowerMap {
         }
     }
 
-    tryPlaceTower = (mouseTileX: number, mouseTileY: number, tileMap: TileMap, ui: Ui, particleSpawner: ParticleSpawner) => {
-        const oldTower = this.getTower(mouseTileX, mouseTileY);
+    tryPlaceTower = (x: number, y: number, tileMap: TileMap, ui: Ui, particleSpawner: ParticleSpawner, network: Network) => {
+        const oldTower = this.getTower(x, y);
 
         if (!oldTower.locallyOwned) {
             return;
         }
 
         if (!oldTower.stats.empty) {
-            ui.inventory.stopUsingTower(oldTower.stats, 1);
-            this.setTower(mouseTileX, mouseTileY, Tower.empty, particleSpawner);
-            tileMap.updateTileStyle(mouseTileX, mouseTileY, true);
+            if (network.isInControl()) {
+                ui.inventory.stopUsingTower(oldTower.stats, 1);
+                this.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+                network.syncRemoveTower(x, y);
+            } else {
+                network.requestRemoveTower(x, y);
+            }
+
             return;
         }
 
         const selectedSlot = ui.getSelectedItem();
 
-        if (selectedSlot.towerStats.empty || !this.contains(mouseTileX, mouseTileY) ||
+        if (selectedSlot.towerStats.empty || !this.contains(x, y) ||
             !ui.inventory.startUsingTower(selectedSlot.towerStats, 1)) {
             return;
         }
 
         const newTowerStats = selectedSlot.towerStats;
-        tileMap.updateTileStyle(mouseTileX, mouseTileY, false);
-        this.setTower(mouseTileX, mouseTileY, new Tower(newTowerStats), particleSpawner);
+        if (network.isInControl()) {
+            this.setTower(x, y, new Tower(newTowerStats), tileMap, particleSpawner);
+            network.syncPlaceTower(x, y, newTowerStats.index);
+        } else {
+            network.requestPlaceTower(x, y, newTowerStats.index);
+        }
     }
 }

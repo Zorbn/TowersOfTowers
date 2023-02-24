@@ -1,5 +1,4 @@
 import { Container, Sprite } from "pixi.js";
-import { Tower } from "./tower";
 import enemyStatsData from "./enemies.json";
 import { ParticleStats } from "./particle";
 import { IDamageable } from "./damageable";
@@ -16,9 +15,9 @@ export class EnemyStats {
     public readonly speed: number;
     public readonly health: number;
     public readonly value: number;
-    public readonly loadIndex: number;
+    public readonly index: number;
 
-    constructor(name: string, textureIndex: number, damage: number, attackTime: number, speed: number, health: number, value: number, loadIndex: number) {
+    constructor(name: string, textureIndex: number, damage: number, attackTime: number, speed: number, health: number, value: number, index: number) {
         this.name = name;
         this.textureIndex = textureIndex;
         this.damage = damage;
@@ -26,7 +25,7 @@ export class EnemyStats {
         this.speed = speed;
         this.health = health;
         this.value = value;
-        this.loadIndex = loadIndex;
+        this.index = index;
     }
 
     private static loadEnemyStats = (): EnemyStats[] => {
@@ -90,7 +89,8 @@ export class Enemy implements IDamageable, IDestructable {
             this.attackTimer = 0;
 
             if (tower.takeDamage(this.stats.damage, particleSpawner)) {
-                towerMap.setTower(tileX, tileY, Tower.empty, particleSpawner);
+                // TODO: Sync
+                // towerMap.setTower(tileX, tileY, Tower.empty, particleSpawner);
             }
 
             return;
