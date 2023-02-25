@@ -7,7 +7,6 @@ import { TowerMap } from "./towerMap";
 import { ParticleSpawner } from "./particleSpawner";
 import { enemyTextures } from "./textureSheet";
 import { TileMap } from "./tileMap";
-import { Tower } from "./tower";
 import { Network } from "./network";
 import { Ui } from "./ui";
 
@@ -116,12 +115,10 @@ export class Enemy implements IDamageable, IDestructable {
             this.attackTimer = 0;
 
             if (tower.takeDamage(this.stats.damage)) {
-                towerMap.setTower(tileX, tileY, Tower.empty, tileMap, particleSpawner);
+                towerMap.removeTower(tileX, tileY, tileMap, ui,
+                    particleSpawner, network);
                 network.syncRemoveTower(tileX, tileY);
 
-                if (tower.isLocallyOwned(network.getLocalId())) {
-                    ui.inventory.stopUsingTower(tower.stats, 1);
-                }
             }
 
             canMove = false;

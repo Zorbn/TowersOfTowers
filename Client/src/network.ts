@@ -103,18 +103,8 @@ export class Network {
 
             for (let y = 0; y < towerMap.height; y++) {
                 for (let x = 0; x < towerMap.width; x++) {
-                    const tower = towerMap.getTower(x, y);
-                    if (tower.stats.empty) {
-                        continue;
-                    }
-
-                    // TODO: There should be a simpler api for removing tower and
-                    // returning it to the owner's inventory.
-                    if (tower.isLocallyOwned(this.getLocalId())) {
-                        ui.inventory.stopUsingTower(tower.stats, 1);
-                    }
-
-                    towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+                    towerMap.removeTower(x, y, tileMap, ui,
+                        particleSpawner, this);
                 }
             }
 
@@ -257,17 +247,7 @@ export class Network {
         });
 
         this.socket.on("removeTower", (x, y) => {
-            const tower = towerMap.getTower(x, y);
-
-            if (tower.stats.empty) {
-                return;
-            }
-
-            if (tower.isLocallyOwned(this.getLocalId())) {
-                ui.inventory.stopUsingTower(tower.stats, 1);
-            }
-
-            towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+            towerMap.removeTower(x, y, tileMap, ui, particleSpawner, this);
         });
 
         this.socket.on("spawnProjectile", (spawnData) => {

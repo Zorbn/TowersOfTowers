@@ -97,6 +97,21 @@ export class TowerMap {
         }
     }
 
+    removeTower = (x: number, y: number, tileMap: TileMap, ui: Ui,
+        particleSpawner: ParticleSpawner, network: Network) => {
+        const tower = this.getTower(x, y);
+
+        if (tower.stats.empty) {
+            return;
+        }
+
+        if (tower.isLocallyOwned(network.getLocalId())) {
+            ui.inventory.stopUsingTower(tower.stats, 1);
+        }
+
+        this.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+    }
+
     tryPlaceTower = (x: number, y: number, tileMap: TileMap, ui: Ui,
         particleSpawner: ParticleSpawner, network: Network) => {
 
@@ -108,8 +123,7 @@ export class TowerMap {
 
         if (!oldTower.stats.empty) {
             if (network.isInControl()) {
-                ui.inventory.stopUsingTower(oldTower.stats, 1);
-                this.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+                this.removeTower(x, y, tileMap, ui, particleSpawner, network);
                 network.syncRemoveTower(x, y);
             } else {
                 network.requestRemoveTower(x, y);
