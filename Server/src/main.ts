@@ -29,6 +29,7 @@ type TowerSpawnData = {
     statsIndex: number;
     x: number;
     y: number;
+    ownerId: string;
 }
 
 type HostState = {
@@ -42,27 +43,26 @@ type HostState = {
 app.use(express.static(resolve(__dirname + "../../../Client/dist")))
 
 const leaveRoom = (socket: Socket) => {
-    const currentRoom = playerRooms.get(socket.id);
-    if (currentRoom == undefined) {
+    const room = playerRooms.get(socket.id);
+    if (room == undefined) {
         return;
     }
 
-    socket.leave(currentRoom);
+    socket.leave(room);
     playerRooms.delete(socket.id);
 
-    // If this player was the host of its room, find a new host.
-    const roomHost = roomHosts.get(currentRoom);
-    if (roomHost == socket.id) {
-        roomHosts.delete(currentRoom);
+    const roomHost = roomHosts.get(room);
 
-        const otherClientsInRoom = io.sockets.adapter.rooms.get(currentRoom);
-        if (otherClientsInRoom != undefined) {
-            for (let otherClient of otherClientsInRoom) {
-                roomHosts.set(currentRoom, otherClient);
-                io.to(otherClient).emit("promoteToHost");
-                break;
-            }
-        }
+    // If this player was the host of its room, close the room.
+    if (roomHost == socket.id) {
+        io.to(room).emit("roomClosed");
+        roomHosts.delete(room);
+        return;
+    }
+
+    // Remove the disconnecting player's towers.
+    if (roomHost != undefined) {
+        io.to(roomHost).emit("removePlayerTowers", socket.id);
     }
 }
 
@@ -122,7 +122,7 @@ io.on("connection", (socket) => {
         io.to(roomHost).emit("hostPlaceTower", x, y, towerIndex, socket.id);
     });
 
-    socket.on("failedPlaceTower", (towerIndex: number, forId: string) => {
+    socket.on("failedPlaceTower", (towerIndex: number, ownerId: string) => {
         const room = playerRooms.get(socket.id);
         if (room == undefined) {
             return;
@@ -137,10 +137,10 @@ io.on("connection", (socket) => {
             return;
         }
 
-        io.to(forId).emit("refundPlaceTower", towerIndex);
+        io.to(ownerId).emit("refundPlaceTower", towerIndex);
     });
 
-    socket.on("syncPlaceTower", (x: number, y: number, towerIndex: number, forId: string) => {
+    socket.on("syncPlaceTower", (x: number, y: number, towerIndex: number, ownerId: string) => {
         const room = playerRooms.get(socket.id);
         if (room == undefined) {
             return;
@@ -155,8 +155,7 @@ io.on("connection", (socket) => {
             return;
         }
 
-        socket.broadcast.to(room).except(forId).emit("remotePlaceTower", x, y, towerIndex);
-        socket.broadcast.to(forId).emit("localPlaceTower", x, y, towerIndex);
+        socket.broadcast.to(room).emit("placeTower", x, y, towerIndex, ownerId);
     });
 
     socket.on("requestRemoveTower", (x: number, y: number) => {

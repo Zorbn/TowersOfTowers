@@ -51,15 +51,17 @@ export class TowerStats {
     public static readonly loadedTowerStats = this.loadTowerStats();
 }
 
+const ALWAYS_LOCAL_ID: string = "";
+
 export class Tower implements IDamageable {
     public readonly stats: TowerStats;
-    public readonly locallyOwned: boolean;
+    public readonly ownerId: string;
     private attackTimer: number;
     private health: number;
 
-    constructor(stats: TowerStats, locallyOwned: boolean = true) {
+    constructor(stats: TowerStats, ownerId: string) {
         this.stats = stats;
-        this.locallyOwned = locallyOwned;
+        this.ownerId = ownerId;
         this.health = stats.health;
         this.attackTimer = 0;
     }
@@ -94,5 +96,9 @@ export class Tower implements IDamageable {
         return false;
     }
 
-    public static readonly empty = new Tower(TowerStats.empty);
+    isLocallyOwned = (localId: string) => {
+        return this.ownerId == ALWAYS_LOCAL_ID || this.ownerId == localId;
+    }
+
+    public static readonly empty = new Tower(TowerStats.empty, ALWAYS_LOCAL_ID);
 }

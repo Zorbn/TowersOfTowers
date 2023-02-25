@@ -96,7 +96,7 @@ export class TowerMap {
     tryPlaceTower = (x: number, y: number, tileMap: TileMap, ui: Ui, particleSpawner: ParticleSpawner, network: Network) => {
         const oldTower = this.getTower(x, y);
 
-        if (!oldTower.locallyOwned) {
+        if (!oldTower.isLocallyOwned(network.getLocalId())) {
             return;
         }
 
@@ -121,7 +121,7 @@ export class TowerMap {
 
         const newTowerStats = selectedSlot.towerStats;
         if (network.isInControl()) {
-            this.setTower(x, y, new Tower(newTowerStats), tileMap, particleSpawner);
+            this.setTower(x, y, new Tower(newTowerStats, network.getLocalId()), tileMap, particleSpawner);
             network.syncPlaceTower(x, y, newTowerStats.index);
         } else {
             network.requestPlaceTower(x, y, newTowerStats.index);

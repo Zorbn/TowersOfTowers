@@ -119,7 +119,7 @@ export class Enemy implements IDamageable, IDestructable {
                 towerMap.setTower(tileX, tileY, Tower.empty, tileMap, particleSpawner);
                 network.syncRemoveTower(tileX, tileY);
 
-                if (tower.locallyOwned) {
+                if (tower.isLocallyOwned(network.getLocalId())) {
                     ui.inventory.stopUsingTower(tower.stats, 1);
                 }
             }

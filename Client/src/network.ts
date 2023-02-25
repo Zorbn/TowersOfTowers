@@ -30,6 +30,7 @@ type TowerSpawnData = {
     statsIndex: number;
     x: number;
     y: number;
+    ownerId: string;
 }
 
 type HostState = {
@@ -45,9 +46,8 @@ interface ServerToClientEvents {
     getState: (forId: string) => void;
     setState: (state: HostState) => void;
     promoteToHost: () => void;
-    hostPlaceTower: (x: number, y: number, towerIndex: number, forId: string) => void;
-    remotePlaceTower: (x: number, y: number, towerIndex: number) => void;
-    localPlaceTower: (x: number, y: number, towerIndex: number) => void;
+    hostPlaceTower: (x: number, y: number, towerIndex: number, ownerId: string) => void;
+    placeTower: (x: number, y: number, towerIndex: number, ownerId: string) => void;
     refundPlaceTower: (towerIndex: number) => void;
     hostRemoveTower: (x: number, y: number) => void;
     removeTower: (x: number, y: number) => void;
@@ -57,6 +57,8 @@ interface ServerToClientEvents {
     removeEnemy: (id: number) => void;
     setEnemyMoving: (id: number, moving: boolean) => void;
     setWave: (wave: number, active: boolean) => void;
+    removePlayerTowers: (ownerId: string) => void;
+    roomClosed: () => void;
 }
 
 interface ClientToServerEvents {
@@ -65,8 +67,8 @@ interface ClientToServerEvents {
     leaveRoom: () => void;
     start: () => void;
     requestPlaceTower: (x: number, y: number, towerIndex: number) => void;
-    syncPlaceTower: (x: number, y: number, towerIndex: number, forId: string) => void;
-    failedPlaceTower: (towerIndex: number, forId: string) => void;
+    syncPlaceTower: (x: number, y: number, towerIndex: number, ownerId: string) => void;
+    failedPlaceTower: (towerIndex: number, ownerId: string) => void;
     requestRemoveTower: (x: number, y: number) => void;
     syncRemoveTower: (x: number, y: number) => void;
     syncSpawnProjectile: (spawnData: ProjectileSpawnData) => void;
@@ -105,12 +107,6 @@ export class Network {
             enemies.clear();
             enemySpawner.reset();
 
-            for (let [, projectile] of projectiles) {
-                projectile.destroy(particleSpawner);
-            }
-
-            projectiles.clear();
-
             for (let y = 0; y < towerMap.height; y++) {
                 for (let x = 0; x < towerMap.width; x++) {
                     const tower = towerMap.getTower(x, y);
@@ -120,13 +116,19 @@ export class Network {
 
                     // TODO: There should be a simpler api for removing tower and
                     // returning it to the owner's inventory.
-                    if (tower.locallyOwned) {
+                    if (tower.isLocallyOwned(this.getLocalId())) {
                         ui.inventory.stopUsingTower(tower.stats, 1);
                     }
 
                     towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
                 }
             }
+
+            for (let [, projectile] of projectiles) {
+                projectile.destroy(particleSpawner);
+            }
+
+            projectiles.clear();
         }
 
         addEventListener("connect", () => {
@@ -174,7 +176,12 @@ export class Network {
                         continue;
                     }
 
-                    towerSpawns.push({ statsIndex: tower.stats.index, x, y });
+                    towerSpawns.push({
+                        statsIndex: tower.stats.index,
+                        ownerId: tower.ownerId,
+                        x,
+                        y,
+                    });
                 }
             }
 
@@ -221,7 +228,7 @@ export class Network {
 
             for (let spawnData of state.towerSpawns) {
                 const towerStats = TowerStats.loadedTowerStats[spawnData.statsIndex];
-                const tower = new Tower(towerStats, false);
+                const tower = new Tower(towerStats, spawnData.ownerId);
                 towerMap.setTower(spawnData.x, spawnData.y, tower, tileMap, particleSpawner);
             }
         });
@@ -230,28 +237,23 @@ export class Network {
             this.host = true;
         });
 
-        this.socket.on("hostPlaceTower", (x, y, towerIndex, forId) => {
+        this.socket.on("hostPlaceTower", (x, y, towerIndex, ownerId) => {
             if (!towerMap.getTowerStats(x, y).empty) {
-                this.socket.emit("failedPlaceTower", towerIndex, forId);
+                this.socket.emit("failedPlaceTower", towerIndex, ownerId);
                 return;
             }
 
-            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex], false);
+            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex], ownerId);
             towerMap.setTower(x, y, tower, tileMap, particleSpawner);
-            this.socket.emit("syncPlaceTower", x, y, towerIndex, forId);
+            this.socket.emit("syncPlaceTower", x, y, towerIndex, ownerId);
         });
 
         this.socket.on("refundPlaceTower", (towerIndex) => {
             ui.inventory.stopUsingTower(TowerStats.loadedTowerStats[towerIndex], 1);
         });
 
-        this.socket.on("localPlaceTower", (x, y, towerIndex) => {
-            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex]);
-            towerMap.setTower(x, y, tower, tileMap, particleSpawner);
-        });
-
-        this.socket.on("remotePlaceTower", (x, y, towerIndex) => {
-            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex], false);
+        this.socket.on("placeTower", (x, y, towerIndex, ownerId) => {
+            const tower = new Tower(TowerStats.loadedTowerStats[towerIndex], ownerId);
             towerMap.setTower(x, y, tower, tileMap, particleSpawner);
         });
 
@@ -271,7 +273,7 @@ export class Network {
                 return;
             }
 
-            if (tower.locallyOwned) {
+            if (tower.isLocallyOwned(this.getLocalId())) {
                 ui.inventory.stopUsingTower(tower.stats, 1);
             }
 
@@ -294,6 +296,9 @@ export class Network {
         });
 
         this.socket.on("removeProjectile", (id) => {
+            // TODO: Make a set type that is for IDestructables that combines
+            // deleting and destroying so that you can't delete without first
+            // destroying.
             projectiles.get(id)?.destroy(particleSpawner);
             projectiles.delete(id);
         });
@@ -338,6 +343,28 @@ export class Network {
             }
 
             enemySpawner.setWave(wave);
+        });
+
+        this.socket.on("removePlayerTowers", (ownerId: string) => {
+            for (let y = 0; y < towerMap.height; y++) {
+                for (let x = 0; x < towerMap.width; x++) {
+                    const tower = towerMap.getTower(x, y);
+                    if (tower.stats.empty) {
+                        continue;
+                    }
+
+                    if (tower.ownerId != ownerId) {
+                        continue;
+                    }
+
+                    towerMap.setTower(x, y, Tower.empty, tileMap, particleSpawner);
+                    this.syncRemoveTower(x, y);
+                }
+            }
+        });
+
+        this.socket.on("roomClosed", () => {
+            this.disconnect();
         });
     }
 
@@ -451,6 +478,10 @@ export class Network {
     }
 
     syncWave = (wave: number, active: boolean) => {
+        if (!this.connected) {
+            return;
+        }
+
         this.socket.emit("syncWave", wave, active);
     }
 
@@ -460,5 +491,13 @@ export class Network {
 
     isInControl = (): boolean => {
         return !this.connected || this.host;
+    }
+
+    getLocalId = (): string => {
+        if (!this.isConnected) {
+            return "";
+        }
+
+        return this.socket.id;
     }
 }
