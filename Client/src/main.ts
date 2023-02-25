@@ -8,6 +8,7 @@ import { tileTextures } from "./textureSheet";
 import { TileMap } from "./tileMap";
 import { ParticleSpawner } from "./particleSpawner";
 import { Network } from "./network";
+import { DestructableMap } from "./destructable";
 
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;
@@ -28,8 +29,8 @@ const onResize = (view: Container) => {
 }
 
 const updateHostEnemies = (world: World, deltaTime: number) => {
-    world.enemySpawner.update(world.enemies, world.towerMap,
-        world.entitySpriteContainer, world.network, deltaTime);
+    world.enemySpawner.update(world.enemies, world.particleSpawner,
+        world.towerMap, world.entitySpriteContainer, world.network, deltaTime);
 
     let enemyInPlayerBase = false;
 
@@ -45,12 +46,11 @@ const updateHostEnemies = (world: World, deltaTime: number) => {
     }
 
     if (enemyInPlayerBase) {
-        for (let [id, enemy] of world.enemies) {
-            enemy.destroy(world.particleSpawner);
+        for (let id of world.enemies.keys()) {
             world.network.syncRemoveEnemy(id);
         }
 
-        world.enemies.clear();
+        world.enemies.clear(world.particleSpawner);
         world.enemySpawner.reset();
         world.network.syncWave(world.enemySpawner.getWave(), world.enemySpawner.isActive());
     }
@@ -105,13 +105,12 @@ const updateHost = async (world: World, deltaTime: number) => {
     for (let [id, projectile] of world.projectiles) {
         // Remove the projectile if it had a collision.
         if (projectile.update(world.ui, world.enemies, world.towerMap, world.particleSpawner, world.network, deltaTime)) {
-            projectile.destroy(world.particleSpawner);
-            world.projectiles.delete(id);
+            world.projectiles.delete(id, world.particleSpawner);
             world.network.syncRemoveProjectile(id);
         }
     }
 
-    world.towerMap.update(world.projectiles, world.entitySpriteContainer, world.network, deltaTime);
+    world.towerMap.update(world.projectiles, world.entitySpriteContainer, world.particleSpawner, world.network, deltaTime);
 }
 
 const updateClient = async (world: World, deltaTime: number) => {
@@ -189,11 +188,11 @@ const main = async () => {
         ui: new Ui(TILE_SIZE, 9, 3, VIEW_WIDTH, VIEW_HEIGHT, view),
         network: new Network(),
         entitySpriteContainer,
-        enemies: new Map(),
+        enemies: new DestructableMap(),
         enemySpawner: new EnemySpawner(),
         towerMap: new TowerMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, entitySpriteContainer),
         tileMap: new TileMap(MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, background),
-        projectiles: new Map(),
+        projectiles: new DestructableMap(),
         particles: [],
         particleSpawner: new ParticleSpawner(),
     };

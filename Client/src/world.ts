@@ -1,4 +1,5 @@
 import { Container } from "pixi.js";
+import { DestructableMap } from "./destructable";
 import { Enemy } from "./enemy";
 import { EnemySpawner } from "./enemySpawner";
 import { Input } from "./input";
@@ -16,11 +17,11 @@ export type World = {
     input: Input,
     ui: Ui,
     network: Network,
-    enemies: Map<number, Enemy>,
+    enemies: DestructableMap<number, Enemy>,
     enemySpawner: EnemySpawner,
     towerMap: TowerMap,
     tileMap: TileMap,
-    projectiles: Map<number, Projectile>,
+    projectiles: DestructableMap<number, Projectile>,
     particleSpawner: ParticleSpawner,
     particles: Particle[],
 }

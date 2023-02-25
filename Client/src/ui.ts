@@ -692,7 +692,6 @@ export class Ui {
         this.networkButtonSelectedSprite.visible = enabled;
     }
 
-    // TODO: Make network button show a disconnect icon if already connected.
     interactWithNetworkButton = (network: Network, mouseX: number, mouseY: number) => {
         if (!Ui.isInSpriteBounds(this.networkButtonSprite, mouseX, mouseY)) {
             return;

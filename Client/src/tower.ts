@@ -1,5 +1,6 @@
 import { Container } from "pixi.js";
 import { IDamageable } from "./damageable";
+import { DestructableMap } from "./destructable";
 import { Network } from "./network";
 import { ParticleSpawner } from "./particleSpawner";
 import { Projectile, ProjectileStats } from "./projectile";
@@ -66,7 +67,9 @@ export class Tower implements IDamageable {
         this.attackTimer = 0;
     }
 
-    update = (tileX: number, tileY: number, tileSize: number, projectiles: Map<number, Projectile>, projectileContainer: Container, network: Network, deltaTime: number) => {
+    update = (tileX: number, tileY: number, tileSize: number, projectiles: DestructableMap<number, Projectile>,
+        projectileContainer: Container, particleSpawner: ParticleSpawner, network: Network, deltaTime: number) => {
+
         if (this.stats.projectileStats == null) {
             return;
         }
@@ -82,11 +85,11 @@ export class Tower implements IDamageable {
         const y = tileY * tileSize;
         const projectileId = Projectile.getNextId();
         const projectile = new Projectile(this.stats.projectileStats, x, y, projectileContainer);
-        projectiles.set(projectileId, projectile);
+        projectiles.set(projectileId, projectile, particleSpawner);
         network.syncSpawnProjectile(projectileId, projectile);
     }
 
-    takeDamage = (damage: number, _particleSpawner: ParticleSpawner): boolean => {
+    takeDamage = (damage: number): boolean => {
         this.health -= damage;
 
         if (this.health <= 0) {

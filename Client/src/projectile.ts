@@ -1,5 +1,5 @@
 import { Container, Sprite } from "pixi.js";
-import { IDestructable } from "./destructable";
+import { DestructableMap, IDestructable } from "./destructable";
 import { Enemy } from "./enemy";
 import { Network } from "./network";
 import { ParticleStats } from "./particle";
@@ -43,7 +43,7 @@ export class Projectile implements IDestructable {
     }
 
     // Moves then checks for collisions, returns true if anything is hit.
-    update = (ui: Ui, enemies: Map<number, Enemy>, towerMap: TowerMap, particleSpawner: ParticleSpawner, network: Network, deltaTime: number): boolean => {
+    update = (ui: Ui, enemies: DestructableMap<number, Enemy>, towerMap: TowerMap, particleSpawner: ParticleSpawner, network: Network, deltaTime: number): boolean => {
         if (this.x > towerMap.width * towerMap.tileSize) {
             return true;
         }
@@ -66,9 +66,9 @@ export class Projectile implements IDestructable {
             }
 
             // Remove the enemy if it died.
-            if (enemy.takeDamage(this.stats.damage, particleSpawner)) {
+            if (enemy.takeDamage(this.stats.damage)) {
                 ui.bank.addMoney(enemy.stats.value);
-                enemies.delete(id);
+                enemies.delete(id, particleSpawner);
                 network.syncRemoveEnemy(id);
             }
 

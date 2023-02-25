@@ -7,6 +7,7 @@ import { Ui } from "./ui";
 import { ParticleSpawner } from "./particleSpawner";
 import { Projectile } from "./projectile";
 import { Network } from "./network";
+import { DestructableMap } from "./destructable";
 
 export class TowerMap {
     private towers: Tower[];
@@ -84,16 +85,21 @@ export class TowerMap {
         return this.getTower(x, y).stats;
     }
 
-    update = (projectiles: Map<number, Projectile>, projectileContainer: Container, network: Network, deltaTime: number) => {
+    update = (projectiles: DestructableMap<number, Projectile>, projectileContainer: Container,
+        particleSpawner: ParticleSpawner, network: Network, deltaTime: number) => {
+
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 const i = x + y * this.width;
-                this.towers[i].update(x, y, this.tileSize, projectiles, projectileContainer, network, deltaTime);
+                this.towers[i].update(x, y, this.tileSize, projectiles,
+                    projectileContainer, particleSpawner, network, deltaTime);
             }
         }
     }
 
-    tryPlaceTower = (x: number, y: number, tileMap: TileMap, ui: Ui, particleSpawner: ParticleSpawner, network: Network) => {
+    tryPlaceTower = (x: number, y: number, tileMap: TileMap, ui: Ui,
+        particleSpawner: ParticleSpawner, network: Network) => {
+
         const oldTower = this.getTower(x, y);
 
         if (!oldTower.isLocallyOwned(network.getLocalId())) {

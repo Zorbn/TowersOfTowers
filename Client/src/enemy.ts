@@ -115,7 +115,7 @@ export class Enemy implements IDamageable, IDestructable {
 
             this.attackTimer = 0;
 
-            if (tower.takeDamage(this.stats.damage, particleSpawner)) {
+            if (tower.takeDamage(this.stats.damage)) {
                 towerMap.setTower(tileX, tileY, Tower.empty, tileMap, particleSpawner);
                 network.syncRemoveTower(tileX, tileY);
 
@@ -135,11 +135,10 @@ export class Enemy implements IDamageable, IDestructable {
         this.move(deltaTime);
     }
 
-    takeDamage = (damage: number, particleSystem: ParticleSpawner): boolean => {
+    takeDamage = (damage: number): boolean => {
         this.health -= damage;
 
         if (this.health <= 0) {
-            this.destroy(particleSystem);
             return true;
         }
 

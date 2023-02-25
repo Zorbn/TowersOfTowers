@@ -1,5 +1,6 @@
 import { Container } from 'pixi.js';
 import io, { Socket } from 'socket.io-client';
+import { DestructableMap } from './destructable';
 import { Enemy, EnemyStats } from './enemy';
 import { EnemySpawner } from './enemySpawner';
 import { ParticleSpawner } from './particleSpawner';
@@ -8,8 +9,6 @@ import { TileMap } from './tileMap';
 import { Tower, TowerStats } from './tower';
 import { TowerMap } from './towerMap';
 import { Ui } from './ui';
-
-// TODO: When a player disconnects, remove their towers on the host.
 
 type EnemySpawnData = {
     statsIndex: number;
@@ -94,17 +93,12 @@ export class Network {
         this.disconnectEvent = new Event("disconnect");
     }
 
-    addListeners = (ui: Ui, enemySpawner: EnemySpawner, enemies: Map<number, Enemy>,
-        towerMap: TowerMap, tileMap: TileMap, projectiles: Map<number, Projectile>,
+    addListeners = (ui: Ui, enemySpawner: EnemySpawner, enemies: DestructableMap<number, Enemy>,
+        towerMap: TowerMap, tileMap: TileMap, projectiles: DestructableMap<number, Projectile>,
         particleSpawner: ParticleSpawner, entitySpriteContainer: Container) => {
 
         const resetState = () => {
-            // TODO: Unify common functionality if possible, ie: removing all enemies is also done in main host update.
-            for (let [, enemy] of enemies) {
-                enemy.destroy(particleSpawner);
-            }
-
-            enemies.clear();
+            enemies.clear(particleSpawner);
             enemySpawner.reset();
 
             for (let y = 0; y < towerMap.height; y++) {
@@ -124,11 +118,7 @@ export class Network {
                 }
             }
 
-            for (let [, projectile] of projectiles) {
-                projectile.destroy(particleSpawner);
-            }
-
-            projectiles.clear();
+            projectiles.clear(particleSpawner);
         }
 
         addEventListener("connect", () => {
@@ -208,7 +198,7 @@ export class Network {
                     towerMap.tileSize,
                     entitySpriteContainer,
                     spawnData.moving,
-                ));
+                ), particleSpawner);
             }
 
             for (let spawnData of state.projectileSpawns) {
@@ -223,7 +213,7 @@ export class Network {
                     spawnData.x,
                     spawnData.y,
                     entitySpriteContainer,
-                ));
+                ), particleSpawner);
             }
 
             for (let spawnData of state.towerSpawns) {
@@ -292,15 +282,11 @@ export class Network {
                 spawnData.x,
                 spawnData.y,
                 entitySpriteContainer,
-            ));
+            ), particleSpawner);
         });
 
         this.socket.on("removeProjectile", (id) => {
-            // TODO: Make a set type that is for IDestructables that combines
-            // deleting and destroying so that you can't delete without first
-            // destroying.
-            projectiles.get(id)?.destroy(particleSpawner);
-            projectiles.delete(id);
+            projectiles.delete(id, particleSpawner);
         });
 
         this.socket.on("spawnEnemy", (spawnData) => {
@@ -313,17 +299,16 @@ export class Network {
                 tileMap.tileSize,
                 entitySpriteContainer,
                 spawnData.moving,
-            ));
+            ), particleSpawner);
         });
 
         this.socket.on("removeEnemy", (id) => {
             const enemy = enemies.get(id);
             if (enemy != undefined) {
                 ui.bank.addMoney(enemy.stats.value);
-                enemy.destroy(particleSpawner);
             }
 
-            enemies.delete(id);
+            enemies.delete(id, particleSpawner);
         });
 
         this.socket.on("setEnemyMoving", (id, moving) => {

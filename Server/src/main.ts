@@ -66,6 +66,40 @@ const leaveRoom = (socket: Socket) => {
     }
 }
 
+// If the player is the host of a room, return that room.
+const getHostRoom = (id: string): string | null => {
+    const room = playerRooms.get(id);
+    if (room == undefined) {
+        return null;
+    }
+
+    const roomHost = roomHosts.get(room);
+    if (roomHost == undefined) {
+        return null;
+    }
+
+    if (roomHost != id) {
+        return null;
+    }
+
+    return room;
+}
+
+// If the player is in a room, return the room's host.
+const getRoomHost = (id: string): string | null => {
+    const room = playerRooms.get(id);
+    if (room == undefined) {
+        return null;
+    }
+
+    const roomHost = roomHosts.get(room);
+    if (roomHost == undefined) {
+        return null;
+    }
+
+    return roomHost;
+}
+
 io.on("connection", (socket) => {
     socket.on("joinRoom", (roomName) => {
         if (playerRooms.has(socket.id)) {
@@ -109,13 +143,8 @@ io.on("connection", (socket) => {
     })
 
     socket.on("requestPlaceTower", (x: number, y: number, towerIndex: number) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
+        const roomHost = getRoomHost(socket.id);
+        if (roomHost == null) {
             return;
         }
 
@@ -123,17 +152,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("failedPlaceTower", (towerIndex: number, ownerId: string) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -141,17 +161,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncPlaceTower", (x: number, y: number, towerIndex: number, ownerId: string) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -159,13 +170,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("requestRemoveTower", (x: number, y: number) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
+        const roomHost = getRoomHost(socket.id);
+        if (roomHost == null) {
             return;
         }
 
@@ -173,17 +179,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncRemoveTower", (x: number, y: number) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -191,17 +188,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncSpawnProjectile", (spawnData: ProjectileSpawnData) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -209,17 +197,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncRemoveProjectile", (id: number) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -227,17 +206,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncSpawnEnemy", (spawnData: EnemySpawnData) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -245,17 +215,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncRemoveEnemy", (id: number) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -263,17 +224,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncEnemyMoving", (id: number, moving: boolean) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 
@@ -281,17 +233,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("syncWave", (wave: number, active: boolean) => {
-        const room = playerRooms.get(socket.id);
-        if (room == undefined) {
-            return;
-        }
-
-        const roomHost = roomHosts.get(room);
-        if (roomHost == undefined) {
-            return;
-        }
-
-        if (roomHost != socket.id) {
+        const room = getHostRoom(socket.id);
+        if (room == null) {
             return;
         }
 

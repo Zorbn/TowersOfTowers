@@ -3,6 +3,8 @@ import enemyStatsData from "./enemies.json";
 import { TowerMap } from "./towerMap";
 import { Container } from "pixi.js";
 import { Network } from "./network";
+import { DestructableMap } from "./destructable";
+import { ParticleSpawner } from "./particleSpawner";
 
 const ENEMY_SPAWN_WIDTH = 2;
 const ENEMY_WAVE_LENGTH = 30;
@@ -81,7 +83,9 @@ export class EnemySpawner {
         network.syncWave(this.wave, this.active);
     }
 
-    updateSpawn = (enemies: Map<number, Enemy>, towerMap: TowerMap, container: Container, network: Network, deltaTime: number) => {
+    updateSpawn = (enemies: DestructableMap<number, Enemy>, particleSpawner: ParticleSpawner,
+        towerMap: TowerMap, container: Container, network: Network, deltaTime: number) => {
+
         this.spawnTimer += deltaTime;
 
         if (this.spawnTimer < this.spawnTime) {
@@ -100,17 +104,19 @@ export class EnemySpawner {
 
         const enemyId = Enemy.getNextId();
         const enemy = new Enemy(stats, x, lane, towerMap.tileSize, container, true);
-        enemies.set(enemyId, enemy);
+        enemies.set(enemyId, enemy, particleSpawner);
         network.syncSpawnEnemy(enemyId, enemy);
     }
 
-    update = (enemies: Map<number, Enemy>, towerMap: TowerMap, container: Container, network: Network, deltaTime: number) => {
+    update = (enemies: DestructableMap<number, Enemy>, particleSpawner: ParticleSpawner, towerMap: TowerMap,
+        container: Container, network: Network, deltaTime: number) => {
+
         if (!this.active) {
             return;
         }
 
         this.updateWave(network, deltaTime);
-        this.updateSpawn(enemies, towerMap, container, network, deltaTime);
+        this.updateSpawn(enemies, particleSpawner, towerMap, container, network, deltaTime);
     }
 
     private static getSpawnTime = (wave: number): number => {
