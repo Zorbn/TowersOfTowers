@@ -1,10 +1,10 @@
 import { Container } from "pixi.js";
 import { IDamageable } from "./damageable";
 import { DestructableMap } from "./destructable";
-import { Network } from "./network";
+import { Network } from "../network";
 import { ParticleSpawner } from "./particleSpawner";
 import { Projectile, ProjectileStats } from "./projectile";
-import towerStatsData from "./towers.json";
+import towerStatsData from "../towers.json";
 
 export class TowerStats {
     public readonly name: string;

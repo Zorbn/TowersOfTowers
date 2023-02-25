@@ -1,8 +1,8 @@
 import { Enemy, EnemyStats } from "./enemy";
-import enemyStatsData from "./enemies.json";
-import { TowerMap } from "./towerMap";
+import enemyStatsData from "../enemies.json";
+import { TowerMap } from "../map/towerMap";
 import { Container } from "pixi.js";
-import { Network } from "./network";
+import { Network } from "../network";
 import { DestructableMap } from "./destructable";
 import { ParticleSpawner } from "./particleSpawner";
 

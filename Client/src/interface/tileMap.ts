@@ -1,5 +1,5 @@
 import { Container, Sprite } from "pixi.js";
-import { tileTextures } from "./textureSheet";
+import { tileTextures } from "../textureSheet";
 
 export class TileMap {
     private tileSprites: Sprite[];

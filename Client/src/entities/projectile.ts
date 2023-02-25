@@ -1,12 +1,12 @@
 import { Container, Sprite } from "pixi.js";
 import { DestructableMap, IDestructable } from "./destructable";
 import { Enemy } from "./enemy";
-import { Network } from "./network";
+import { Network } from "../network";
 import { ParticleStats } from "./particle";
 import { ParticleSpawner } from "./particleSpawner";
-import { projectileTextures } from "./textureSheet";
-import { TowerMap } from "./towerMap";
-import { Ui } from "./ui";
+import { projectileTextures } from "../textureSheet";
+import { TowerMap } from "../map/towerMap";
+import { Ui } from "../interface/ui";
 
 export class ProjectileStats {
     public readonly textureIndex: number;

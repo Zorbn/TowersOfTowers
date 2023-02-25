@@ -1,15 +1,15 @@
 import { Container } from "pixi.js";
-import { DestructableMap } from "./destructable";
-import { Enemy } from "./enemy";
-import { EnemySpawner } from "./enemySpawner";
+import { DestructableMap } from "./entities/destructable";
+import { Enemy } from "./entities/enemy";
+import { EnemySpawner } from "./entities/enemySpawner";
 import { Input } from "./input";
 import { Network } from "./network";
-import { Particle } from "./particle";
-import { ParticleSpawner } from "./particleSpawner";
-import { Projectile } from "./projectile";
-import { TileMap } from "./tileMap";
-import { TowerMap } from "./towerMap";
-import { Ui } from "./ui";
+import { Particle } from "./entities/particle";
+import { ParticleSpawner } from "./entities/particleSpawner";
+import { Projectile } from "./entities/projectile";
+import { TileMap } from "./interface/tileMap";
+import { TowerMap } from "./map/towerMap";
+import { Ui } from "./interface/ui";
 
 export type World = {
     view: Container,

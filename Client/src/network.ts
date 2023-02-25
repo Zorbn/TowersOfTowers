@@ -1,14 +1,14 @@
 import { Container } from 'pixi.js';
 import io, { Socket } from 'socket.io-client';
-import { DestructableMap } from './destructable';
-import { Enemy, EnemyStats } from './enemy';
-import { EnemySpawner } from './enemySpawner';
-import { ParticleSpawner } from './particleSpawner';
-import { Projectile } from './projectile';
-import { TileMap } from './tileMap';
-import { Tower, TowerStats } from './tower';
-import { TowerMap } from './towerMap';
-import { Ui } from './ui';
+import { DestructableMap } from './entities/destructable';
+import { Enemy, EnemyStats } from './entities/enemy';
+import { EnemySpawner } from './entities/enemySpawner';
+import { ParticleSpawner } from './entities/particleSpawner';
+import { Projectile } from './entities/projectile';
+import { TileMap } from './interface/tileMap';
+import { Tower, TowerStats } from './entities/tower';
+import { TowerMap } from './map/towerMap';
+import { Ui } from './interface/ui';
 
 type EnemySpawnData = {
     statsIndex: number;

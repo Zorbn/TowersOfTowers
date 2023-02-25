@@ -1,14 +1,14 @@
 import { Application, Sprite, Container, Texture, SCALE_MODES, BitmapFont } from "pixi.js";
 import { Input } from "./input";
 import { World } from "./world";
-import { Ui } from "./ui";
-import { EnemySpawner } from "./enemySpawner";
-import { TowerMap } from "./towerMap";
+import { Ui } from "./interface/ui";
+import { EnemySpawner } from "./entities/enemySpawner";
+import { TowerMap } from "./map/towerMap";
 import { tileTextures } from "./textureSheet";
-import { TileMap } from "./tileMap";
-import { ParticleSpawner } from "./particleSpawner";
+import { TileMap } from "./interface/tileMap";
+import { ParticleSpawner } from "./entities/particleSpawner";
 import { Network } from "./network";
-import { DestructableMap } from "./destructable";
+import { DestructableMap } from "./entities/destructable";
 
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;

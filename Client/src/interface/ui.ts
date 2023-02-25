@@ -1,342 +1,23 @@
-import { Texture, Sprite, Container, BitmapText } from "pixi.js";
-import { ICleanable } from "./cleanable";
-import { EnemySpawner } from "./enemySpawner";
-import { Input } from "./input";
-import { Network } from "./network";
-import { namedUiTextures, towerTextures } from "./textureSheet";
-import { TowerStats } from "./tower";
-import { TowerMap } from "./towerMap";
-import towerStatsData from "./towers.json";
+import { Sprite, Container, BitmapText } from "pixi.js";
+import { EnemySpawner } from "../entities/enemySpawner";
+import { Input } from "../input";
+import { Network } from "../network";
+import { namedUiTextures, towerTextures } from "../textureSheet";
+import { TowerStats } from "../entities/tower";
+import { TowerMap } from "../map/towerMap";
+import { ITab, TabType } from "./tab";
+import { Bank } from "./bank";
+import { SaveInventoryItem, Inventory, InventoryItem } from "./inventory";
+import { Shop } from "./shop";
+import { NetworkPanel } from "./networkPanel";
 
 const STARTING_MONEY = 100;
 const SAVE_IDENTIFIER = "saveData";
-const ACTIVE_COLOR = 0xffffff;
-const INACTIVE_COLOR = 0x888888;
-const MAX_ROOM_CODE_LENGTH = 6;
-
-enum TabType {
-    INVENTORY,
-    SHOP,
-}
-
-interface Item {
-    towerStats: TowerStats;
-    isActive: (money: number) => boolean;
-}
-
-class InventoryItem implements Item {
-    public towerStats: TowerStats;
-    public owned: number;
-    public used: number;
-
-    constructor(towerStats: TowerStats, owned: number, used: number) {
-        this.towerStats = towerStats;
-        this.owned = owned;
-        this.used = used;
-    }
-
-    isActive(_money: number): boolean {
-        return this.used < this.owned;
-    }
-
-    public static readonly empty = new InventoryItem(TowerStats.empty, 0, 0);
-}
-
-type SaveInventoryItem = {
-    name: string,
-    owned: number,
-};
 
 type SaveData = {
     money: number,
     items: SaveInventoryItem[],
 };
-
-class ShopItem implements Item {
-    public towerStats: TowerStats;
-    public cost: number;
-
-    constructor(towerStats: TowerStats, cost: number) {
-        this.towerStats = towerStats;
-        this.cost = cost;
-    }
-
-    isActive(money: number): boolean {
-        return money >= this.cost;
-    }
-}
-
-interface ITab {
-    draw: (towerTextures: Texture[], slotItemSprites: Sprite[], money: number) => void;
-    selectSlot: (i: number) => void;
-    getSelectedSlot: () => number;
-}
-
-class Tab<T extends Item> {
-    private slots: T[];
-    private width: number;
-    private height: number;
-    private selectedSlot: number;
-
-    constructor(width: number, height: number, defaultItem: T) {
-        this.width = width;
-        this.height = height;
-        this.slots = new Array(width * height);
-        this.clear(defaultItem);
-        this.selectedSlot = 0;
-    }
-
-    clear = (defaultItem: T) => {
-        this.slots.fill(defaultItem);
-    }
-
-    draw = (towerTextures: Texture[], slotItemSprites: Sprite[], money: number): void => {
-        for (let i = 0; i < this.slots.length; i++) {
-            let slotItem = this.slots[i];
-
-            slotItemSprites[i].texture = towerTextures[slotItem.towerStats.textureIndex];
-            slotItemSprites[i].tint = slotItem.isActive(money) ? ACTIVE_COLOR : INACTIVE_COLOR;
-        }
-    }
-
-    selectSlot = (i: number) => {
-        if (i < 0 || i >= this.width * this.height) {
-            return;
-        }
-
-        this.selectedSlot = i;
-    }
-
-    getSelectedSlot = (): number => {
-        return this.selectedSlot;
-    }
-
-    getSelectedItem = (): T => {
-        return this.slots[this.selectedSlot];
-    }
-
-    addItem = (item: T) => {
-        for (let i = 0; i < this.slots.length; i++) {
-            if (!this.slots[i].towerStats.empty) {
-                continue;
-            }
-
-            this.slots[i] = item;
-            break;
-        }
-    }
-
-    getItem = (towerStats: TowerStats): T | null => {
-        for (let i = 0; i < this.slots.length; i++) {
-            if (this.slots[i].towerStats == towerStats) {
-                return this.slots[i];
-            }
-        }
-
-        return null;
-    }
-
-    getSlot = (i: number): T => {
-        return this.slots[i];
-    }
-
-    getSlotCount = (): number => {
-        return this.slots.length;
-    }
-}
-
-class Inventory implements ICleanable {
-    public readonly tab: Tab<InventoryItem>;
-    private footer: Container;
-    private labelText: BitmapText;
-    private dirty: boolean;
-
-    constructor(width: number, height: number, tileSize: number, container: Container) {
-        this.tab = new Tab(width, height, InventoryItem.empty);
-        this.footer = new Container();
-        this.footer.y = tileSize * height;
-        container.addChild(this.footer);
-
-        this.labelText = new BitmapText("", { fontName: "DefaultFont" });
-        this.labelText.x = tileSize * 0.25;
-        this.labelText.y = tileSize * 0.3;
-        this.labelText.scale.x = 0.2;
-        this.labelText.scale.y = 0.2;
-        this.footer.addChild(this.labelText);
-
-        this.dirty = false;
-    }
-
-    clear = () => {
-        this.tab.clear(InventoryItem.empty);
-    }
-
-    addTower = (towerStats: TowerStats, quantity: number) => {
-        this.dirty = true;
-
-        let item = this.tab.getItem(towerStats);
-
-        if (item == null) {
-            this.tab.addItem(new InventoryItem(towerStats, quantity, 0));
-            return;
-        }
-
-        item.owned += quantity;
-    }
-
-    startUsingTower = (towerStats: TowerStats, quantity: number): boolean => {
-        let item = this.tab.getItem(towerStats);
-
-        if (item == null) {
-            return false;
-        }
-
-        const freeTowers = item.owned - item.used;
-
-        if (freeTowers < quantity) {
-            return false;
-        }
-
-        item.used += quantity;
-        return true;
-    }
-
-    stopUsingTower = (towerStats: TowerStats, quantity: number) => {
-        let item = this.tab.getItem(towerStats);
-
-        if (item == null) {
-            return;
-        }
-
-        item.used -= quantity;
-
-        if (item.used < 0) {
-            item.used = 0;
-        }
-    }
-
-    draw = (selectedTab: TabType) => {
-        this.footer.visible = false;
-
-        if (selectedTab != TabType.INVENTORY) {
-            return;
-        }
-
-        const selectedItem = this.tab.getSelectedItem();
-
-        if (selectedItem.towerStats.empty) {
-            return;
-        }
-
-        this.footer.visible = true;
-        const remainingTowers = selectedItem.owned - selectedItem.used;
-        this.labelText.text = `The ${selectedItem.towerStats.name} ${remainingTowers}/${selectedItem.owned}`;
-    }
-
-    isDirty = () => {
-        return this.dirty;
-    }
-
-    markClean = () => {
-        this.dirty = false;
-    }
-}
-
-class Shop {
-    public readonly tab: Tab<ShopItem>;
-    private footer: Container;
-    private buyButtonSprite: Sprite;
-    private labelText: BitmapText;
-
-    constructor(width: number, height: number, tileSize: number, container: Container) {
-        this.tab = new Tab(width, height, new ShopItem(TowerStats.empty, 0));
-
-        // Skip the empty tower
-        for (let i = 0; i < TowerStats.loadedTowerStats.length; i++) {
-            this.tab.addItem(new ShopItem(
-                TowerStats.loadedTowerStats[i],
-                towerStatsData[i].cost,
-            ));
-        }
-
-        this.footer = new Container();
-        this.footer.y = tileSize * height;
-        container.addChild(this.footer);
-
-        this.buyButtonSprite = new Sprite(namedUiTextures.buyButton);
-        this.buyButtonSprite.y = tileSize * 0.25;
-        this.buyButtonSprite.x = tileSize * 0.25;
-        this.footer.addChild(this.buyButtonSprite);
-
-        this.labelText = new BitmapText("", { fontName: "DefaultFont" });
-        this.labelText.x = tileSize * 1.5;
-        this.labelText.y = tileSize * 0.3;
-        this.labelText.scale.x = 0.2;
-        this.labelText.scale.y = 0.2;
-        this.footer.addChild(this.labelText);
-    }
-
-    draw = (selectedTab: TabType) => {
-        this.footer.visible = false;
-
-        if (selectedTab != TabType.SHOP) {
-            return;
-        }
-
-        const selectedItem = this.tab.getSelectedItem();
-
-        if (selectedItem.towerStats.empty) {
-            return;
-        }
-
-        this.footer.visible = true;
-        this.labelText.text = `The ${selectedItem.towerStats.name} $${selectedItem.cost}`;
-    }
-
-    isBuyButtonHovered = (mouseX: number, mouseY: number) => {
-        return Ui.isInSpriteBounds(this.buyButtonSprite, mouseX, mouseY);
-    }
-}
-
-class Bank implements ICleanable {
-    private money: number;
-    private dirty: boolean;
-
-    constructor(money: number) {
-        this.money = money;
-        this.dirty = false;
-    }
-
-    addMoney = (amount: number) => {
-        this.setMoney(this.money + amount);
-    }
-
-    spendMoney = (amount: number): boolean => {
-        if (this.money < amount) {
-            return false;
-        }
-
-        this.setMoney(this.money - amount);
-        return true;
-    }
-
-    getMoney = (): number => {
-        return this.money;
-    }
-
-    setMoney = (amount: number) => {
-        this.money = amount;
-        this.dirty = true;
-    }
-
-    isDirty = (): boolean => {
-        return this.dirty;
-    }
-
-    markClean = () => {
-        this.dirty = false;
-    }
-}
 
 export class Ui {
     public readonly inventory: Inventory;
@@ -371,17 +52,8 @@ export class Ui {
 
     private networkButtonSprite: Sprite;
     private networkButtonSelectedSprite: Sprite;
-    private networkPanelContainer: Container;
-    private connectButtonSprite: Sprite;
-    private roomCodeInputSpriteLeft: Sprite;
-    private roomCodeInputSpriteMiddle: Sprite;
-    private roomCodeInputSpriteRight: Sprite;
-    private isRoomCodeInputFocused: boolean;
-    private roomCodeText: BitmapText;
-    private roomCode: string;
+    private networkPanel: NetworkPanel;
 
-    // Todo: Can these be constructed in multiple parts,
-    // ie: tabbed ui, top right control panel, etc.
     constructor(tileSize: number, slotsWidth: number, slotsHeight: number, viewWidth: number, _viewHeight: number, container: Container) {
         const slotCount = slotsWidth * slotsHeight;
         this.slotBackgroundSprites = new Array(slotCount);
@@ -453,6 +125,13 @@ export class Ui {
         this.networkButtonSelectedSprite.visible = false;
         container.addChild(this.networkButtonSelectedSprite);
 
+        this.networkPanel = new NetworkPanel(
+            tileSize,
+            this.networkButtonSprite.x,
+            this.networkButtonSprite.y + tileSize,
+            container
+        );
+
         this.saveButtonSprite = new Sprite(namedUiTextures.saveButton);
         this.saveButtonSprite.x = this.networkButtonSprite.x - tileSize;
         container.addChild(this.saveButtonSprite);
@@ -479,35 +158,6 @@ export class Ui {
         this.downloadButtonSprite = new Sprite(namedUiTextures.downloadButton);
         this.downloadButtonSprite.x = this.uploadButtonSprite.x - tileSize;
         container.addChild(this.downloadButtonSprite);
-
-        this.networkPanelContainer = new Container();
-        this.networkPanelContainer.x = this.networkButtonSprite.x;
-        this.networkPanelContainer.y = this.networkButtonSprite.y + tileSize;
-        this.networkPanelContainer.visible = false;
-        container.addChild(this.networkPanelContainer);
-
-        this.connectButtonSprite = new Sprite(namedUiTextures.connectButton);
-        this.networkPanelContainer.addChild(this.connectButtonSprite);
-
-        this.roomCodeInputSpriteLeft = new Sprite(namedUiTextures.inputFieldLeft);
-        this.roomCodeInputSpriteLeft.x = -tileSize * 3;
-        this.networkPanelContainer.addChild(this.roomCodeInputSpriteLeft);
-        this.roomCodeInputSpriteMiddle = new Sprite(namedUiTextures.inputFieldMiddle);
-        this.roomCodeInputSpriteMiddle.x = -tileSize * 2;
-        this.networkPanelContainer.addChild(this.roomCodeInputSpriteMiddle);
-        this.roomCodeInputSpriteRight = new Sprite(namedUiTextures.inputFieldRight);
-        this.roomCodeInputSpriteRight.x = -tileSize;
-        this.networkPanelContainer.addChild(this.roomCodeInputSpriteRight);
-        this.isRoomCodeInputFocused = false;
-
-        this.roomCode = "";
-        this.roomCodeText = new BitmapText("", { fontName: "DefaultFont" });
-        this.roomCodeText.scale.x = 0.15;
-        this.roomCodeText.scale.y = 0.15;
-        this.roomCodeText.x = this.roomCodeInputSpriteLeft.x + tileSize * 0.3;
-        this.roomCodeText.y = tileSize * 0.15;
-        this.roomCodeText.zIndex = 1;
-        this.networkPanelContainer.addChild(this.roomCodeText);
 
         this.moneyText = new BitmapText("", { fontName: "DefaultFont" });
         this.moneyText.x = (this.slotsWidth + this.tabsWidth + 0.125) * tileSize;
@@ -550,31 +200,6 @@ export class Ui {
         return tab;
     }
 
-    // TODO: Network panel should be it's own class like shop/inv.
-    drawNetworkPanel = (network: Network) => {
-        if (network.isConnected()) {
-            this.networkButtonSprite.texture = namedUiTextures.disconnectButton;
-        } else {
-            this.networkButtonSprite.texture = namedUiTextures.networkButton;
-        }
-
-        if (!this.networkPanelContainer.visible) {
-            return;
-        }
-
-        if (this.roomCode.length == 0) {
-            this.roomCodeText.text = "Room Code";
-            this.roomCodeText.tint = INACTIVE_COLOR;
-        } else {
-            this.roomCodeText.text = this.roomCode;
-            this.roomCodeText.tint = ACTIVE_COLOR;
-        }
-
-        if (this.isRoomCodeInputFocused) {
-            this.roomCodeText.text += "|";
-        }
-    }
-
     draw = (enemySpawner: EnemySpawner, tileSize: number, network: Network) => {
         this.moneyText.text = `$${this.bank.getMoney()}`;
 
@@ -606,7 +231,8 @@ export class Ui {
 
         this.shop.draw(this.selectedTab);
         this.inventory.draw(this.selectedTab);
-        this.drawNetworkPanel(network);
+
+        this.networkPanel.draw(network, this.networkButtonSprite, this.networkButtonSelectedSprite);
     }
 
     interactWithBuyButton = (mouseX: number, mouseY: number) => {
@@ -687,11 +313,6 @@ export class Ui {
         this.saveInput.click();
     }
 
-    enableNetworkPanel = (enabled: boolean) => {
-        this.networkPanelContainer.visible = enabled;
-        this.networkButtonSelectedSprite.visible = enabled;
-    }
-
     interactWithNetworkButton = (network: Network, mouseX: number, mouseY: number) => {
         if (!Ui.isInSpriteBounds(this.networkButtonSprite, mouseX, mouseY)) {
             return;
@@ -700,76 +321,8 @@ export class Ui {
         if (network.isConnected()) {
             network.disconnect();
         } else {
-            this.enableNetworkPanel(!this.networkPanelContainer.visible);
+            this.networkPanel.enable(!this.networkPanel.isEnabled());
         }
-    }
-
-    interactWithRoomCodeInput = (mouseX: number, mouseY: number) => {
-        this.isRoomCodeInputFocused =
-            Ui.isInSpriteBounds(this.roomCodeInputSpriteLeft, mouseX, mouseY) ||
-            Ui.isInSpriteBounds(this.roomCodeInputSpriteMiddle, mouseX, mouseY) ||
-            Ui.isInSpriteBounds(this.roomCodeInputSpriteRight, mouseX, mouseY);
-    }
-
-    interactWithNetworkPanel = (network: Network, mouseX: number, mouseY: number) => {
-        this.interactWithRoomCodeInput(mouseX, mouseY);
-
-        if (!Ui.isInSpriteBounds(this.connectButtonSprite, mouseX, mouseY) || this.roomCode.trim().length == 0) {
-            return;
-        }
-
-        network.connect(this.roomCode);
-        this.enableNetworkPanel(false);
-
-    }
-
-    isAlphaNumeric = (char: string) => {
-        if (char.length != 1) {
-            return false;
-        }
-
-        const charCode = char.charCodeAt(0);
-        return (charCode > 47 && charCode < 58) || // 0-9
-            (charCode > 64 && charCode < 91) || // A-Z
-            (charCode > 96 && charCode < 123); // a-z
-    }
-
-    updateRoomCodeInput = (input: Input) => {
-        for (let key of input.keyStream) {
-            if (key == "Backspace") {
-                this.roomCode = this.roomCode.substring(0, this.roomCode.length - 1);
-                continue;
-            }
-
-            if (key == "Escape") {
-                this.roomCode = "";
-            }
-
-            if (!this.isAlphaNumeric(key)) {
-                continue;
-            }
-
-            if (this.roomCode.length >= MAX_ROOM_CODE_LENGTH) {
-                continue;
-            }
-
-            this.roomCode += key;
-        }
-    }
-
-    updateNetworkPanel = (input: Input) => {
-        if (!this.networkPanelContainer.visible) {
-            this.isRoomCodeInputFocused = false;
-            return;
-        }
-
-        if (this.isRoomCodeInputFocused) {
-            this.updateRoomCodeInput(input);
-        }
-    }
-
-    update = (input: Input) => {
-        this.updateNetworkPanel(input);
     }
 
     interact = (mouseWorldX: number, mouseWorldY: number, mouseX: number, mouseY: number, towerMap: TowerMap, enemySpawner: EnemySpawner, network: Network) => {
@@ -785,7 +338,11 @@ export class Ui {
         this.interactWithDownloadButton(mouseX, mouseY);
         this.interactWithUploadButton(mouseX, mouseY);
         this.interactWithNetworkButton(network, mouseX, mouseY);
-        this.interactWithNetworkPanel(network, mouseX, mouseY);
+        this.networkPanel.interact(network, mouseX, mouseY);
+    }
+
+    update = (input: Input) => {
+        this.networkPanel.update(input);
     }
 
     selectSlot = (tileX: number, tileY: number) => {

@@ -1,6 +1,6 @@
 import { Container } from "pixi.js";
 import { Particle, ParticleStats } from "./particle";
-import { particleTextures } from "./textureSheet";
+import { particleTextures } from "../textureSheet";
 
 type QueuedParticle = {
     x: number;

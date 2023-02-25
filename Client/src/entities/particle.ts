@@ -1,7 +1,7 @@
 import { Container, Sprite, Texture } from "pixi.js";
 import { IDestructable } from "./destructable";
 import { ParticleSpawner } from "./particleSpawner";
-import { particleTextures } from "./textureSheet";
+import { particleTextures } from "../textureSheet";
 
 const PARTICLE_FPS = 10;
 

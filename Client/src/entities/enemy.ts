@@ -1,14 +1,14 @@
 import { Container, Sprite } from "pixi.js";
-import enemyStatsData from "./enemies.json";
+import enemyStatsData from "../enemies.json";
 import { ParticleStats } from "./particle";
 import { IDamageable } from "./damageable";
 import { IDestructable } from "./destructable";
-import { TowerMap } from "./towerMap";
+import { TowerMap } from "../map/towerMap";
 import { ParticleSpawner } from "./particleSpawner";
-import { enemyTextures } from "./textureSheet";
-import { TileMap } from "./tileMap";
-import { Network } from "./network";
-import { Ui } from "./ui";
+import { enemyTextures } from "../textureSheet";
+import { TileMap } from "../interface/tileMap";
+import { Network } from "../network";
+import { Ui } from "../interface/ui";
 
 export class EnemyStats {
     public readonly name: string;
