@@ -551,7 +551,13 @@ export class Ui {
     }
 
     // TODO: Network panel should be it's own class like shop/inv.
-    drawNetworkPanel = () => {
+    drawNetworkPanel = (network: Network) => {
+        if (network.isConnected()) {
+            this.networkButtonSprite.texture = namedUiTextures.disconnectButton;
+        } else {
+            this.networkButtonSprite.texture = namedUiTextures.networkButton;
+        }
+
         if (!this.networkPanelContainer.visible) {
             return;
         }
@@ -569,7 +575,7 @@ export class Ui {
         }
     }
 
-    draw = (enemySpawner: EnemySpawner, tileSize: number) => {
+    draw = (enemySpawner: EnemySpawner, tileSize: number, network: Network) => {
         this.moneyText.text = `$${this.bank.getMoney()}`;
 
         if (enemySpawner.isActive()) {
@@ -600,7 +606,7 @@ export class Ui {
 
         this.shop.draw(this.selectedTab);
         this.inventory.draw(this.selectedTab);
-        this.drawNetworkPanel();
+        this.drawNetworkPanel(network);
     }
 
     interactWithBuyButton = (mouseX: number, mouseY: number) => {

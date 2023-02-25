@@ -17,29 +17,6 @@ const MAP_HEIGHT = 4;
 const TILE_SIZE = 16;
 const BASE_WIDTH = 3;
 
-// TODO:
-// Animated enemies?
-// Networking?
-
-/*
- * Networking:
- * Add UI to enter room code and join, or leave if you are already in one,
- * Three states: LOCAL, HOST, CLIENT
- * First player the join the room is the HOST
- * Current update runs for LOCAL & HOST
- * Update without any spawning/destroying runs for CLIENT
- * Add functions to send WS info for spawning/destroying and enemy start/stop to those functions
- * Networking functions do nothing if run on a LOCAL player
- * Simple server that serve's the client and uses WS to relay messages to players in the same room,
- * When a player disconnects swap hosts if they are the host (if possible) and remove player's buildings.
- */
-
-/*
- * Sync current state on join
- * Sync new updates
- * Sync disconnecting
- */
-
 const onResize = (view: Container) => {
     let scale = Math.min(window.innerWidth / VIEW_WIDTH, window.innerHeight / VIEW_HEIGHT);
 
@@ -87,7 +64,7 @@ const updateClientEnemies = (world: World, deltaTime: number) => {
 
 const updateCommon = async (world: World, deltaTime: number) => {
     world.ui.update(world.input);
-    world.ui.draw(world.enemySpawner, TILE_SIZE);
+    world.ui.draw(world.enemySpawner, TILE_SIZE, world.network);
 
     for (let i = world.particles.length - 1; i >= 0; i--) {
         const particle = world.particles[i];
