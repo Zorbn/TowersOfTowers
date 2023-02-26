@@ -7,8 +7,8 @@
             "damage": 5,
             "speed": 50
         },
-        "attackTime": 1,
-        "health": 100,
+        "attackTime": 2,
+        "health": 20,
         "cost": 50
     },
     {
@@ -19,8 +19,8 @@
             "damage": 10,
             "speed": 50
         },
-        "attackTime": 1,
-        "health": 200,
+        "attackTime": 2,
+        "health": 30,
         "cost": 100
     },
     {
@@ -31,8 +31,68 @@
             "damage": 15,
             "speed": 50
         },
-        "attackTime": 1,
-        "health": 300,
+        "attackTime": 2,
+        "health": 40,
         "cost": 200
+    },
+    {
+        "name": "Crossbow",
+        "textureIndex": 3,
+        "projectileStats": {
+            "textureIndex": 3,
+            "damage": 8,
+            "speed": 75
+        },
+        "attackTime": 1.5,
+        "health": 20,
+        "cost": 150
+    },
+    {
+        "name": "Cannon",
+        "textureIndex": 4,
+        "projectileStats": {
+            "textureIndex": 4,
+            "damage": 30,
+            "speed": 25
+        },
+        "attackTime": 4,
+        "health": 60,
+        "cost": 250
+    },
+    {
+        "name": "Gattling Gun",
+        "textureIndex": 5,
+        "projectileStats": {
+            "textureIndex": 5,
+            "damage": 5,
+            "speed": 50
+        },
+        "attackTime": 1,
+        "health": 50,
+        "cost": 400
+    },
+    {
+        "name": "Turret",
+        "textureIndex": 6,
+        "projectileStats": {
+            "textureIndex": 6,
+            "damage": 10,
+            "speed": 50
+        },
+        "attackTime": 1,
+        "health": 50,
+        "cost": 750
+    },
+    {
+        "name": "Lightning Turret",
+        "textureIndex": 7,
+        "projectileStats": {
+            "textureIndex": 7,
+            "damage": 20,
+            "speed": 75
+        },
+        "attackTime": 1,
+        "health": 60,
+        "cost": 1000
     }
 ]

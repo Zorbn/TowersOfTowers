@@ -8,7 +8,10 @@ import { ParticleSpawner } from "./particleSpawner";
 
 const ENEMY_SPAWN_WIDTH = 2;
 const ENEMY_WAVE_LENGTH = 30;
-const WAVES_PER_TIER = 1;
+const ENEMY_STARTING_SPAWN_TIME = 5;
+const ENEMY_MINIMUM_SPAWN_TIME = 1;
+const ENEMY_SPAWN_TIME_DECAY_RATE = 1;
+const WAVES_PER_TIER = 1; // TODO: Change this
 
 export class EnemySpawner {
     private wave: number;
@@ -120,6 +123,6 @@ export class EnemySpawner {
     }
 
     private static getSpawnTime = (wave: number): number => {
-        return Math.max(5 - Math.log10(wave * 2 + 1), 1);
+        return Math.max(ENEMY_STARTING_SPAWN_TIME - Math.log2(wave * ENEMY_SPAWN_TIME_DECAY_RATE + 1), ENEMY_MINIMUM_SPAWN_TIME);
     }
 }
