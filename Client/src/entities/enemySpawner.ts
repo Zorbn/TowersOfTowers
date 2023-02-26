@@ -9,8 +9,8 @@ import { ParticleSpawner } from "./particleSpawner";
 const ENEMY_SPAWN_WIDTH = 2;
 const ENEMY_WAVE_LENGTH = 30;
 const ENEMY_STARTING_SPAWN_TIME = 5;
-const ENEMY_MINIMUM_SPAWN_TIME = 1;
-const ENEMY_SPAWN_TIME_DECAY_RATE = 1;
+const ENEMY_MINIMUM_SPAWN_TIME = 0.25;
+const ENEMY_SPAWN_TIME_DECAY_RATE = 1.2;
 const WAVES_PER_TIER = 4;
 const STARTING_WAVE = 1;
 
