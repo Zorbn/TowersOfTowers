@@ -3,9 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "ts-node src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
