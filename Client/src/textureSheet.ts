@@ -20,10 +20,14 @@ export const loadTextureSheet = async (path: string, tileSize: number, tileCount
     return textures;
 }
 
-export const tileTextures = await loadTextureSheet("tileSheet.png", TEXTURE_TILE_SIZE, 4);
+// The maximum number of entries used from each of these texture sheets
+// can't exceed the number of entries related to them in their respective
+// data files, so we know their max texture count automatically.
 export const towerTextures = await loadTextureSheet("towerSheet.png", TEXTURE_TILE_SIZE, towerStatsData.length);
 export const enemyTextures = await loadTextureSheet("enemySheet.png", TEXTURE_TILE_SIZE, enemyStatsData.length);
-export const projectileTextures = await loadTextureSheet("projectileSheet.png", TEXTURE_TILE_SIZE, 4);
+export const projectileTextures = await loadTextureSheet("projectileSheet.png", TEXTURE_TILE_SIZE, towerStatsData.length);
+
+export const tileTextures = await loadTextureSheet("tileSheet.png", TEXTURE_TILE_SIZE, 4);
 export const particleTextures = await loadTextureSheet("particleSheet.png", TEXTURE_TILE_SIZE, 18);
 
 export const uiTextures = await loadTextureSheet("uiSheet.png", TEXTURE_TILE_SIZE, 15);

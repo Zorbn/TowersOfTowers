@@ -75,10 +75,6 @@ const updateCommon = async (world: World, deltaTime: number) => {
         }
     }
 
-    // TODO: Remove this.
-    if (world.input.wasKeyPressed("KeyM")) {
-        world.ui.bank.addMoney(25);
-    }
 
     if (world.input.wasMouseButtonPressed(0)) {
         const mouseX = world.input.getMouseX();

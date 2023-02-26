@@ -11,7 +11,8 @@ const ENEMY_WAVE_LENGTH = 30;
 const ENEMY_STARTING_SPAWN_TIME = 5;
 const ENEMY_MINIMUM_SPAWN_TIME = 1;
 const ENEMY_SPAWN_TIME_DECAY_RATE = 1;
-const WAVES_PER_TIER = 1; // TODO: Change this
+const WAVES_PER_TIER = 4;
+const STARTING_WAVE = 1;
 
 export class EnemySpawner {
     private wave: number;
@@ -21,7 +22,7 @@ export class EnemySpawner {
     private active: boolean;
     private readonly enemyStatTiers: EnemyStats[][];
 
-    constructor(wave: number = 1, active: boolean = false) {
+    constructor(wave: number = STARTING_WAVE, active: boolean = false) {
         this.wave = wave;
         this.spawnTime = EnemySpawner.getSpawnTime(wave);
         this.spawnTimer = 0;
@@ -52,7 +53,7 @@ export class EnemySpawner {
     }
 
     reset = () => {
-        this.setWave(1);
+        this.setWave(STARTING_WAVE);
         this.active = false;
     }
 
@@ -98,7 +99,7 @@ export class EnemySpawner {
         this.spawnTimer = 0;
 
         // Select a random tier to spawn an enemy from. The maximum tier depends on the current wave.
-        const enemyTier = Math.floor(Math.random() * this.enemyStatTiers.length) % (this.wave / WAVES_PER_TIER);
+        const enemyTier = Math.floor(Math.random() * this.enemyStatTiers.length) % Math.ceil(this.wave / WAVES_PER_TIER);
         const statsI = Math.floor(Math.random() * this.enemyStatTiers[enemyTier].length);
         const stats = this.enemyStatTiers[enemyTier][statsI];
 
