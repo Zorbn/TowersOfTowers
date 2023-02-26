@@ -8,6 +8,9 @@
         "build": "tsc && vite build",
         "preview": "vite preview"
     },
+    "engines": {
+        "node": "^14.18.0"
+    },
     "devDependencies": {
         "typescript": "^4.9.3",
         "vite": "^4.1.0"
