@@ -40,6 +40,7 @@ type HostState = {
     towerSpawns: TowerSpawnData[],
 };
 
+console.log(resolve(__dirname + "../../../Client/dist"));
 app.use(express.static(resolve(__dirname + "../../../Client/dist")))
 
 const leaveRoom = (socket: Socket) => {
