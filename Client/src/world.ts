@@ -7,7 +7,7 @@ import { Network } from "./network";
 import { Particle } from "./entities/particle";
 import { ParticleSpawner } from "./entities/particleSpawner";
 import { Projectile } from "./entities/projectile";
-import { TileMap } from "./interface/tileMap";
+import { TileMap } from "./map/tileMap";
 import { TowerMap } from "./map/towerMap";
 import { Ui } from "./interface/ui";
 

@@ -2,7 +2,7 @@ import { Container, Sprite } from "pixi.js";
 import { Tower, TowerStats } from "../entities/tower";
 import { ParticleStats } from "../entities/particle";
 import { towerTextures } from "../textureSheet";
-import { TileMap } from "../interface/tileMap";
+import { TileMap } from "./tileMap";
 import { Ui } from "../interface/ui";
 import { ParticleSpawner } from "../entities/particleSpawner";
 import { Projectile } from "../entities/projectile";

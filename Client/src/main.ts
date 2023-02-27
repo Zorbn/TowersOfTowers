@@ -5,7 +5,7 @@ import { Ui } from "./interface/ui";
 import { EnemySpawner } from "./entities/enemySpawner";
 import { TowerMap } from "./map/towerMap";
 import { tileTextures } from "./textureSheet";
-import { TileMap } from "./interface/tileMap";
+import { TileMap } from "./map/tileMap";
 import { ParticleSpawner } from "./entities/particleSpawner";
 import { Network } from "./network";
 import { DestructableMap } from "./entities/destructable";

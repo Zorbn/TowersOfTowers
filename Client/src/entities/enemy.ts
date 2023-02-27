@@ -6,7 +6,7 @@ import { IDestructable } from "./destructable";
 import { TowerMap } from "../map/towerMap";
 import { ParticleSpawner } from "./particleSpawner";
 import { enemyTextures } from "../textureSheet";
-import { TileMap } from "../interface/tileMap";
+import { TileMap } from "../map/tileMap";
 import { Network } from "../network";
 import { Ui } from "../interface/ui";
 

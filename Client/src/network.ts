@@ -5,7 +5,7 @@ import { Enemy, EnemyStats } from './entities/enemy';
 import { EnemySpawner } from './entities/enemySpawner';
 import { ParticleSpawner } from './entities/particleSpawner';
 import { Projectile } from './entities/projectile';
-import { TileMap } from './interface/tileMap';
+import { TileMap } from './map/tileMap';
 import { Tower, TowerStats } from './entities/tower';
 import { TowerMap } from './map/towerMap';
 import { Ui } from './interface/ui';
